@@ -92,15 +92,15 @@ _Last checked 2026-08-03._
 
 | Area | Assumption | Status | Detail |
 | --- | --- | --- | --- |
-| Login | `/s/popup/login` serves the form | ✅ | 2273 bytes |
-| Login | hidden `LoginSecurity` is minted | ✅ | 154 chars |
-| Login | hidden `SubmitToken` is minted | ✅ | 174 chars |
+| Login | `/s/popup/login` serves the form | ✅ | 2277 bytes |
+| Login | hidden `LoginSecurity` is minted | ✅ | 156 chars |
+| Login | hidden `SubmitToken` is minted | ✅ | 176 chars |
 | Login | posts to `/s/submit/login` | ✅ | /s/submit/login |
 | Login | field `LoginEmail` present | ✅ |  |
 | Login | field `LoginPassword` present | ✅ |  |
 | Catalogue | Algolia credentials readable from site JS | ✅ | app id + search key found |
 | Catalogue | index name readable | ✅ | dev_FullTest |
-| Catalogue | index returns a plausible catalogue | ✅ | 946 records |
+| Catalogue | index returns a plausible catalogue | ✅ | 945 records |
 | Catalogue | record field `ID` | ✅ | present |
 | Catalogue | record field `Name` | ✅ | present |
 | Catalogue | record field `Price` | ✅ | present |
