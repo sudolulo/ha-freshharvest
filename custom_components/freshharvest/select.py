@@ -56,12 +56,17 @@ class FreshHarvestBoxSelect(FreshHarvestEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """The subscribed box.
+        """The box actually arriving in the changeable delivery.
 
-        Read from the subscription rather than the switch popups: the box you
-        are on is the one the site offers no switch control for, so it has no
-        name there.
+        NOT the subscription. A one-off switch changes the delivery while the
+        standing order keeps naming the old box — verified live: after
+        switching the next delivery to Medium, the subscription still read
+        Small. Reporting the subscription here would show the wrong box for
+        exactly the week someone had changed it.
         """
+        order = self.coordinator.data.open_order or self.coordinator.data.next_order
+        if order is not None and order.box_name:
+            return order.box_name
         subs = self.coordinator.data.subscriptions
         return subs[0].name if subs else None
 

@@ -73,12 +73,25 @@ def test_no_subscriptions_is_empty_not_an_error():
     assert actions.parse_subscriptions("<html><body>nothing</body></html>") == []
 
 
-def test_vacation_holds_need_two_dates():
-    html = "<div class='account-item-container'>2026-09-01 to 2026-09-14</div>"
+def test_vacation_hold_uses_the_sites_own_date_format():
+    """The page writes "Tuesday, Dec 1 - Monday, Dec 7", never ISO.
+
+    The first version of this test asserted ISO dates, so it passed against a
+    format the site does not produce while the parser reported zero holds on an
+    account that had one.
+    """
+    html = (
+        "<div class='account'><div class='account-item'>Upcoming Pauses"
+        "<div class='account-item-container'>Tuesday, Dec 1 - Monday, Dec 7"
+        "<a>Remove</a></div></div></div>"
+    )
     holds = actions.parse_vacation_holds(html)
-    assert len(holds) == 1 and holds[0].start == "2026-09-01"
-    assert holds[0].end == "2026-09-14"
-    assert actions.parse_vacation_holds("<div class='account-item-container'>none</div>") == []
+    assert len(holds) == 1
+    assert (holds[0].start, holds[0].end) == ("Dec 1", "Dec 7")
+
+
+def test_no_holds_parses_empty():
+    assert actions.parse_vacation_holds("<div class='account'>none</div>") == []
 
 
 def test_frequency_names_map_to_site_values():

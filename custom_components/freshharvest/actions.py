@@ -44,6 +44,7 @@ SUBMIT_DONATE = "/s/submit/donate-basket"
 SUBMIT_SUBSCRIBE = "/s/submit/item-frequency"
 SUBMIT_HOLD = "/s/submit/pause-range-add"
 SUBMIT_BASKET = "/s/submit/select-basket"
+SUBMIT_HOLD_REMOVE = "/s/submit/pause-range-remove"
 BASKET_TYPES = "/p/shop/basket-types"
 BASKET_GROUPS = (
     "georgia-grown-baskets",
@@ -162,14 +163,27 @@ def parse_subscriptions(html: str) -> list[Subscription]:
 
 
 def parse_vacation_holds(html: str) -> list[VacationHold]:
-    """Read the scheduled pauses off /p/dashboard/pause-deliveries."""
+    """Read the scheduled pauses off /p/dashboard/pause-deliveries.
+
+    The page renders a hold as "Tuesday, Dec 1 - Monday, Dec 7" — day names and
+    abbreviated months, never ISO. An earlier version looked for YYYY-MM-DD and
+    so reported no holds on an account that had one, which is indistinguishable
+    from having none.
+    """
     soup = BeautifulSoup(html, "html.parser")
+    account = soup.select_one(".account")
+    if account is None:
+        return []
+    text = re.sub(r"\s+", " ", account.get_text(" ", strip=True))
     holds: list[VacationHold] = []
-    for row in soup.select(".account-item-multi-fields, .account-item-container"):
-        text = row.get_text(" ", strip=True)
-        found = re.findall(r"\d{4}-\d{2}-\d{2}", text)
-        if len(found) >= 2:
-            holds.append(VacationHold(start=found[0], end=found[1], raw=text))
+    pattern = re.compile(
+        r"[A-Z][a-z]+,\s*([A-Z][a-z]{2})\s+(\d{1,2})\s*-\s*"
+        r"[A-Z][a-z]+,\s*([A-Z][a-z]{2})\s+(\d{1,2})"
+    )
+    for m in pattern.finditer(text):
+        start = f"{m.group(1)} {m.group(2)}"
+        end = f"{m.group(3)} {m.group(4)}"
+        holds.append(VacationHold(start=start, end=end, raw=m.group(0)))
     return holds
 
 
@@ -451,6 +465,33 @@ class FreshHarvestActions:
 
     async def async_list_vacation_holds(self) -> list[VacationHold]:
         return parse_vacation_holds(await self._client.async_fetch(DASHBOARD_PAUSE))
+
+    async def async_remove_vacation_hold(self, dry_run: bool = True) -> ActionResult:
+        """Lift the first scheduled hold.
+
+        Its popup only exists while a hold does, so this raises when there is
+        nothing to lift rather than posting into the void.
+        """
+        page = await self._client.async_fetch(DASHBOARD_PAUSE)
+        tok = re.search(r'openPopup\("pause-range-remove",\s*"([^"]+)"', page)
+        if not tok:
+            raise FreshHarvestActionError("no scheduled hold to remove")
+        popup = await self._client.async_fetch(
+            f"/x/popup/pause-range-remove/{tok.group(1)}", is_page=False
+        )
+        soup = BeautifulSoup(popup, "html.parser")
+        form = _find_form(soup, SUBMIT_HOLD_REMOVE)
+        if form is None:
+            raise FreshHarvestActionError("hold-removal form not found")
+        payload = _hidden_fields(form) | {"Continue": "Confirm"}
+        result = ActionResult(
+            action="remove_vacation_hold", ok=True,
+            target=re.sub(r"\s+", " ", soup.get_text(" ", strip=True))[:80],
+            submitted=payload, dry_run=dry_run, detail="lift the scheduled hold",
+        )
+        if not dry_run:
+            await self._post(SUBMIT_HOLD_REMOVE, payload)
+        return result
 
 
 @dataclass
