@@ -70,16 +70,30 @@ def test_next_order_is_the_locked_one(snapshot):
 def test_next_order_totals_and_contents(snapshot):
     order = snapshot.next_order
     assert order.box_name == "Georgia Grown Small Box"
-    assert (order.subtotal, order.tax, order.delivery_fee) == (105.88, 3.18, 0.0)
-    assert order.total == 109.06
+    assert (order.subtotal, order.tax, order.delivery_fee) == (72.93, 2.19, 0.0)
+    assert order.total == 75.12
     assert [(i.quantity, i.name, i.unit) for i in order.items] == [
         (1, "Bolero Carrots", ".5 lb"),
         (2, "Georgia Peaches", "6 count"),
     ]
-    assert [
-        (a.name, a.price, a.quantity, a.unit) for a in order.addons
-    ] == [("Black Mission Figs", 7.99, 1, "1 pint")]
-    assert len(order.all_items) == 3
+    assert [(a.name, a.price, a.quantity, a.unit) for a in order.addons] == [
+        ("Black Mission Figs", 7.99, 1, "1 pint"),
+        ("Complete Recovery Smoothie", 17.96, 4, "15.2 fl oz"),
+        ("Organic Fruit Punch Juice Boxes", 13.98, 2, "8 count"),
+    ]
+    assert len(order.all_items) == 5
+
+
+def test_addons_total_reconciles_with_the_subtotal(snapshot):
+    """Add-ons plus the box price must equal the subtotal the portal reports."""
+    order = snapshot.next_order
+    assert order.addons_total == 39.93
+    assert round(order.addons_total + order.box_price, 2) == order.subtotal
+
+
+def test_addons_total_is_zero_when_nothing_is_added(snapshot):
+    assert snapshot.open_order.addons == []
+    assert snapshot.open_order.addons_total == 0.0
 
 
 def test_open_order(snapshot):

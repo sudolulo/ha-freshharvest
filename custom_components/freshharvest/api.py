@@ -110,6 +110,15 @@ class DeliveryOrder:
     def all_items(self) -> list[OrderItem]:
         return [*self.items, *self.addons]
 
+    @property
+    def addons_total(self) -> float:
+        """Combined cost of the add-ons, excluding the produce box itself.
+
+        Add-on prices are already extended (4 smoothies bill as one $17.96
+        line), so this is a plain sum. It should equal `subtotal - box_price`.
+        """
+        return round(sum(a.price for a in self.addons if a.price is not None), 2)
+
 
 @dataclass
 class AccountSnapshot:

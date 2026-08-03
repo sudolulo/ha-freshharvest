@@ -5,6 +5,24 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-08-03
+
+### Added
+
+- `sensor.fresh_harvest_next_delivery_add_ons`, the combined cost of the
+  add-ons excluding the produce box.
+- `add_ons_total` and `box_price` attributes on the item-count sensor.
+- A test asserting `add_ons_total + box_price` equals the portal's own
+  subtotal, so a mis-parsed price cannot pass silently.
+
+### Changed
+
+- `add_ons` attribute entries now carry quantity, unit, and extended price
+  (`4 Complete Recovery Smoothie 15.2 fl oz — $17.96`) rather than a bare name.
+  Templates reading these strings will need updating.
+- The test fixture's totals are now internally consistent, so the subtotal
+  reconciliation is a real invariant rather than copied numbers.
+
 ## [0.1.0] - 2026-08-03
 
 ### Added

@@ -9,9 +9,15 @@ the Georgia local-produce delivery subscription.
 | --- | --- | --- |
 | `sensor.fresh_harvest_next_delivery` | `2026-08-04` | Attributes: `delivery_day`, `box` |
 | `sensor.fresh_harvest_next_delivery_total` | `109.06` | Attributes: `subtotal`, `tax`, `delivery_fee` |
-| `sensor.fresh_harvest_next_delivery_items` | `14` | Attributes: `box`, `produce`, `add_ons` |
+| `sensor.fresh_harvest_next_delivery_add_ons` | `72.88` | Add-ons only, excluding the box. Attributes: `box_price`, `add_ons` |
+| `sensor.fresh_harvest_next_delivery_items` | `14` | Attributes: `box`, `box_price`, `produce`, `add_ons`, `add_ons_total` |
 | `sensor.fresh_harvest_open_order_delivery` | `2026-08-11` | The order you can still change |
 | `sensor.fresh_harvest_shopping_window` | `Shop tomorrow` | `closed` when nothing is customizable |
+
+Each `add_ons` entry carries its quantity, unit, and extended price — a
+multi-quantity line bills as one amount, so 4 smoothies read
+`4 Complete Recovery Smoothie 15.2 fl oz — $17.96`. `add_ons_total` plus
+`box_price` always equals the portal's own subtotal, which a test asserts.
 
 The next delivery and the *open* order are usually two different deliveries.
 Once an order passes its cutoff it locks for packing, and the cart you can still

@@ -18,9 +18,19 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FreshHarvestConfigEntry
-from .api import AccountSnapshot, DeliveryOrder
+from .api import AccountSnapshot, DeliveryOrder, OrderItem
 from .const import DOMAIN
 from .coordinator import FreshHarvestCoordinator
+
+
+def _format_item(item: OrderItem, with_price: bool = False) -> str:
+    """Render one line, e.g. '4 Complete Recovery Smoothie 15.2 fl oz — $17.96'."""
+    line = " ".join(
+        part for part in (str(item.quantity or ""), item.name, item.unit) if part
+    )
+    if with_price and item.price is not None:
+        line = f"{line} — ${item.price:,.2f}"
+    return line
 
 
 def _items_attrs(order: DeliveryOrder | None) -> dict[str, Any] | None:
@@ -28,11 +38,10 @@ def _items_attrs(order: DeliveryOrder | None) -> dict[str, Any] | None:
         return None
     return {
         "box": order.box_name,
-        "produce": [
-            " ".join(part for part in (str(i.quantity or ""), i.name, i.unit) if part)
-            for i in order.items
-        ],
-        "add_ons": [a.name for a in order.addons],
+        "box_price": order.box_price,
+        "produce": [_format_item(i) for i in order.items],
+        "add_ons": [_format_item(a, with_price=True) for a in order.addons],
+        "add_ons_total": order.addons_total,
     }
 
 
@@ -68,6 +77,22 @@ SENSORS: tuple[FreshHarvestSensorDescription, ...] = (
             "subtotal": s.next_order.subtotal,
             "tax": s.next_order.tax,
             "delivery_fee": s.next_order.delivery_fee,
+        },
+    ),
+    FreshHarvestSensorDescription(
+        key="next_delivery_addons_total",
+        translation_key="next_delivery_addons_total",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement="USD",
+        value_fn=lambda s: s.next_order.addons_total if s.next_order else None,
+        attrs_fn=lambda s: None
+        if s.next_order is None
+        else {
+            "box_price": s.next_order.box_price,
+            "add_ons": [
+                _format_item(a, with_price=True) for a in s.next_order.addons
+            ],
         },
     ),
     FreshHarvestSensorDescription(

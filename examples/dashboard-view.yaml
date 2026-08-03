@@ -4,7 +4,7 @@
 # next delivery, what is in the box, and the order that can still be changed.
 #
 # To use it, open your dashboard, choose "Edit dashboard" -> "Raw configuration
-# editor", and paste this under `views:`. It only needs the five sensors the
+# editor", and paste this under `views:`. It only needs the six sensors the
 # integration creates.
 
 type: sections
@@ -41,6 +41,11 @@ sections:
     icon: mdi:cash-multiple
     color: teal
   - type: tile
+    entity: sensor.fresh_harvest_next_delivery_add_ons
+    name: Add-ons
+    icon: mdi:cart-plus
+    color: purple
+  - type: tile
     entity: sensor.fresh_harvest_next_delivery_items
     name: Items
     icon: mdi:basket-check
@@ -55,8 +60,10 @@ sections:
     content: |-
       {%- set produce = state_attr('sensor.fresh_harvest_next_delivery_items', 'produce') or [] -%}
       {%- set addons = state_attr('sensor.fresh_harvest_next_delivery_items', 'add_ons') or [] -%}
+      {%- set addons_total = state_attr('sensor.fresh_harvest_next_delivery_items', 'add_ons_total') -%}
+      {%- set box_price = state_attr('sensor.fresh_harvest_next_delivery_items', 'box_price') -%}
       {%- if produce -%}
-      **In the box**
+      **In the box**{% if box_price %} · ${{ '%.2f' | format(box_price) }}{% endif %}
       {% for i in produce %}
       - {{ i }}
       {%- endfor %}
@@ -64,7 +71,7 @@ sections:
       _Box contents not assigned yet._
       {%- endif %}
       {% if addons %}
-      **Add-ons**
+      **Add-ons**{% if addons_total %} · ${{ '%.2f' | format(addons_total) }}{% endif %}
       {% for a in addons %}
       - {{ a }}
       {%- endfor %}

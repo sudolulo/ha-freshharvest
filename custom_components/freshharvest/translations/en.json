@@ -19,11 +19,24 @@
   },
   "entity": {
     "sensor": {
-      "next_delivery": { "name": "Next delivery" },
-      "next_delivery_total": { "name": "Next delivery total" },
-      "next_delivery_items": { "name": "Next delivery items" },
-      "open_order_delivery": { "name": "Open order delivery" },
-      "shop_window": { "name": "Shopping window" }
+      "next_delivery": {
+        "name": "Next delivery"
+      },
+      "next_delivery_total": {
+        "name": "Next delivery total"
+      },
+      "next_delivery_addons_total": {
+        "name": "Next delivery add-ons"
+      },
+      "next_delivery_items": {
+        "name": "Next delivery items"
+      },
+      "open_order_delivery": {
+        "name": "Open order delivery"
+      },
+      "shop_window": {
+        "name": "Shopping window"
+      }
     }
   }
 }
