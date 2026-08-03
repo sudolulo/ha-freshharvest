@@ -5,22 +5,21 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-08-03
 
 ### Added
 
 - Config flow taking freshharvest.com portal credentials.
 - Session client implementing the two-step login handshake against
   `/s/popup/login` and `/s/submit/login`, including the per-session
-  `LoginSecurity` and `SubmitToken` anti-replay fields.
+  `LoginSecurity` and `SubmitToken` anti-replay fields, with one automatic
+  re-authentication when a session lapses.
+- Dashboard parser reading delivery day, next arrival date, both upcoming
+  carts, produce-box contents, add-ons, and order totals from a single
+  `GET /p/dashboard/details`.
 - Update coordinator polling every 6 hours, surfacing auth failures as
   `ConfigEntryAuthFailed` so Home Assistant prompts for re-authentication.
-- Sensor platform for next delivery date, order total, order status, and box
-  item count.
-
-### Known limitations
-
-- Delivery parsing is unimplemented; the integration cannot yet produce values.
-  The portal HTML has not been mapped against a signed-in session.
-- The signed-in check is a provisional heuristic and needs confirming against a
-  real authenticated response.
+- Five sensors: next delivery date, next delivery total, next delivery item
+  count, open order delivery date, and shopping window.
+- Parser tests covering totals, contents, the locked/open distinction, money
+  parsing, and year rollover on undated cart tabs.

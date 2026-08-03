@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
+    SensorStateClass,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -16,16 +18,30 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FreshHarvestConfigEntry
-from .api import Delivery
+from .api import AccountSnapshot, DeliveryOrder
 from .const import DOMAIN
 from .coordinator import FreshHarvestCoordinator
+
+
+def _items_attrs(order: DeliveryOrder | None) -> dict[str, Any] | None:
+    if order is None:
+        return None
+    return {
+        "box": order.box_name,
+        "produce": [
+            " ".join(part for part in (str(i.quantity or ""), i.name, i.unit) if part)
+            for i in order.items
+        ],
+        "add_ons": [a.name for a in order.addons],
+    }
 
 
 @dataclass(frozen=True, kw_only=True)
 class FreshHarvestSensorDescription(SensorEntityDescription):
     """Describes a Fresh Harvest sensor."""
 
-    value_fn: Callable[[Delivery], object]
+    value_fn: Callable[[AccountSnapshot], Any]
+    attrs_fn: Callable[[AccountSnapshot], dict[str, Any] | None] | None = None
 
 
 SENSORS: tuple[FreshHarvestSensorDescription, ...] = (
@@ -33,24 +49,52 @@ SENSORS: tuple[FreshHarvestSensorDescription, ...] = (
         key="next_delivery",
         translation_key="next_delivery",
         device_class=SensorDeviceClass.DATE,
-        value_fn=lambda d: d.delivery_date,
+        value_fn=lambda s: s.next_delivery,
+        attrs_fn=lambda s: {
+            "delivery_day": s.delivery_day,
+            "box": s.next_order.box_name if s.next_order else None,
+        },
     ),
     FreshHarvestSensorDescription(
-        key="order_total",
-        translation_key="order_total",
+        key="next_delivery_total",
+        translation_key="next_delivery_total",
         device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement="USD",
-        value_fn=lambda d: d.total,
+        value_fn=lambda s: s.next_order.total if s.next_order else None,
+        attrs_fn=lambda s: None
+        if s.next_order is None
+        else {
+            "subtotal": s.next_order.subtotal,
+            "tax": s.next_order.tax,
+            "delivery_fee": s.next_order.delivery_fee,
+        },
     ),
     FreshHarvestSensorDescription(
-        key="status",
-        translation_key="status",
-        value_fn=lambda d: d.status,
+        key="next_delivery_items",
+        translation_key="next_delivery_items",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="items",
+        value_fn=lambda s: len(s.next_order.all_items) if s.next_order else None,
+        attrs_fn=lambda s: _items_attrs(s.next_order),
     ),
     FreshHarvestSensorDescription(
-        key="item_count",
-        translation_key="item_count",
-        value_fn=lambda d: len(d.items) if d.items else None,
+        key="open_order_delivery",
+        translation_key="open_order_delivery",
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda s: s.open_order.delivery_date if s.open_order else None,
+        attrs_fn=lambda s: None
+        if s.open_order is None
+        else {
+            "total": s.open_order.total,
+            "box": s.open_order.box_name,
+        },
+    ),
+    FreshHarvestSensorDescription(
+        key="shop_window",
+        translation_key="shop_window",
+        value_fn=lambda s: (s.open_order.shop_window if s.open_order else None)
+        or "closed",
     ),
 )
 
@@ -68,7 +112,7 @@ async def async_setup_entry(
 
 
 class FreshHarvestSensor(CoordinatorEntity[FreshHarvestCoordinator], SensorEntity):
-    """A value read off the Fresh Harvest portal."""
+    """A value read off the Fresh Harvest dashboard."""
 
     _attr_has_entity_name = True
     entity_description: FreshHarvestSensorDescription
@@ -87,17 +131,17 @@ class FreshHarvestSensor(CoordinatorEntity[FreshHarvestCoordinator], SensorEntit
             name="Fresh Harvest",
             manufacturer="Fresh Harvest",
             entry_type=DeviceEntryType.SERVICE,
-            configuration_url="https://freshharvest.com/",
+            configuration_url="https://freshharvest.com/p/dashboard/details",
         )
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the sensor value."""
         return self.entity_description.value_fn(self.coordinator.data)
 
     @property
-    def extra_state_attributes(self) -> dict[str, object] | None:
-        """Expose box contents on the item-count sensor."""
-        if self.entity_description.key != "item_count":
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the sensor's extra attributes."""
+        if self.entity_description.attrs_fn is None:
             return None
-        return {"items": self.coordinator.data.items}
+        return self.entity_description.attrs_fn(self.coordinator.data)

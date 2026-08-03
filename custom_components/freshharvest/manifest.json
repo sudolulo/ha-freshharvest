@@ -7,6 +7,6 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://git.onetick.ninja/flan/ha-freshharvest/issues",
-  "requirements": [],
+  "requirements": ["beautifulsoup4>=4.12"],
   "version": "0.1.0"
 }

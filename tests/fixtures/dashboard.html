@@ -1,0 +1,92 @@
+<!--
+  Minimal stand-in for /p/dashboard/details, mirroring the real portal markup.
+  Synthetic on purpose: the live page carries the account holder's name,
+  address and phone number, which must not live in the repo.
+-->
+<html>
+<body>
+  <div class='nav-main-cart'>
+    <div class='cart-selector-options-wrapper' data-cart-select='2772590'>
+      <div data-cart-select='2772590'>Tue 8/4</div>
+    </div>
+    <div class='cart-selector-options-wrapper' data-cart-select='2778336'>
+      <div data-cart-select='2778336'>Tue 8/11</div>
+    </div>
+  </div>
+
+  <!-- Open cart: still customizable, contents not yet assigned. -->
+  <div class='cart-contents' data-cart-select='2778336'>
+    <div class='cart-basket-columns'>
+      <h6>Georgia Grown Small Box</h6>
+      <div class='item-total'>$33.00</div>
+      <div class='cart-customize-wrapper'><div>Shop tomorrow</div></div>
+    </div>
+  </div>
+  <div id='OrderTotals-2778336'>
+    <div class='cart-summary'>
+      <span class='summary-item label'>Subtotal</span><span class='summary-item value'>$33.00</span>
+      <span class='summary-item label'>Driver Tip</span><span class='summary-item value'>Add Tip</span>
+      <span class='summary-item label'>Tax</span><span class='summary-item value'>$0.99</span>
+      <span class='summary-item label'>Delivery</span><span class='summary-item value'>$5.99</span>
+      <span class='summary-item label demi-bold total'>Order Total <span class='order-total-see-details'>See Details</span></span><span class='summary-item value'>$39.98</span>
+    </div>
+  </div>
+
+  <!-- Locked cart: past its cutoff, arriving next, contents final. -->
+  <div class='cart-contents cart-contents-skipped' data-cart-select='2772590'>
+    <div class='cart-basket-columns'>
+      <h6>Georgia Grown Small Box</h6>
+      <div class='item-total'>$33.00</div>
+      <div class='cart-customize-wrapper'></div>
+    </div>
+    <div class='basket-contents'>
+      <div id='DODRow-1' class='cart-item basket-item'>
+        <div class='basket-item-details'>
+          <span class='basket-item-quantity'>1</span>
+          <span class='basket-item-name'>Bolero Carrots</span>
+          <span class='basket-item-uom'>.5 lb</span>
+        </div>
+      </div>
+      <div id='DODRow-2' class='cart-item basket-item'>
+        <div class='basket-item-details'>
+          <span class='basket-item-quantity'>2</span>
+          <span class='basket-item-name'>Georgia Peaches</span>
+          <span class='basket-item-uom'>6 count</span>
+        </div>
+      </div>
+    </div>
+    <div id='DODRow-3' class='cart-item qv-button shop-item-cursor' data-qvid='8961'>
+      <img class='cart-item-img' src='https://cdn.freshharvest.com/x.jpg' alt='Black Mission Figs' />
+      <div class='item-details'>
+        <span class='item-name'><div>Black Mission Figs</div></span>
+        <span class='item-total'>$7.99</span>
+        <span class='item-uom'><div>1 pint</div><div class='snap-tag-cart'></div></span>
+        <div class='item-order-wrapper'>
+          <div class='item-order item-order-disabled'>
+            <div class='btn-round item-order-remove qv-ignore'></div>
+            <span class='item-order-quantity qv-ignore' data-item-quantity='8961'>1</span>
+            <div class='btn-round item-order-add qv-ignore'></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id='OrderTotals-2772590'>
+    <div class='cart-summary'>
+      <span class='summary-item label'>Subtotal</span><span class='summary-item value'>$105.88</span>
+      <span class='summary-item label'>Tax</span><span class='summary-item value'>$3.18</span>
+      <span class='summary-item label'>Delivery</span><span class='summary-item value'>$0.00</span>
+      <span class='summary-item label demi-bold total'>Order Total <span>See Details</span></span><span class='summary-item value'>$109.06</span>
+    </div>
+  </div>
+
+  <div class='account'>
+    <div class='account-item'>
+      <div class='account-item-heading'>Delivery Details</div>
+      <div class='account-item-text'>Your deliveries are Tuesdays.  Next Arriving: August 4th, 2026</div>
+    </div>
+  </div>
+
+  <a href='#'>Sign Out</a>
+</body>
+</html>

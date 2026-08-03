@@ -20,9 +20,10 @@
   "entity": {
     "sensor": {
       "next_delivery": { "name": "Next delivery" },
-      "order_total": { "name": "Order total" },
-      "status": { "name": "Order status" },
-      "item_count": { "name": "Items in box" }
+      "next_delivery_total": { "name": "Next delivery total" },
+      "next_delivery_items": { "name": "Next delivery items" },
+      "open_order_delivery": { "name": "Open order delivery" },
+      "shop_window": { "name": "Shopping window" }
     }
   }
 }
