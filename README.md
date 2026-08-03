@@ -160,7 +160,7 @@ Paste it under `views:` in the raw configuration editor.
 ## Tests
 
 ```
-pip install beautifulsoup4 pytest
+pip install beautifulsoup4 pytest yarl
 pytest tests/
 ```
 
