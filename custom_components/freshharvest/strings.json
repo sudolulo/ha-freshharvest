@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Sign in with your freshharvest.com account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication"
+    },
+    "abort": {
+      "already_configured": "This account is already configured"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_delivery": { "name": "Next delivery" },
+      "order_total": { "name": "Order total" },
+      "status": { "name": "Order status" },
+      "item_count": { "name": "Items in box" }
+    }
+  }
+}
