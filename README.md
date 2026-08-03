@@ -1,7 +1,5 @@
 # ha-freshharvest
 
-[![Validate](https://github.com/sudolulo/ha-freshharvest/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/sudolulo/ha-freshharvest/actions) [![Upstream compatibility](https://github.com/sudolulo/ha-freshharvest/actions/workflows/compat.yml/badge.svg?branch=main)](https://github.com/sudolulo/ha-freshharvest/actions/workflows/compat.yml) [![HACS: custom](https://img.shields.io/badge/HACS-custom-41BDF5?logo=homeassistant&logoColor=white)](https://hacs.xyz/docs/faq/custom_repositories) [![Home Assistant 2025.2+](https://img.shields.io/badge/Home%20Assistant-2025.2%2B-41BDF5?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-%E2%9D%A4-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sudolulo) [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/sudolulo)
-
 Unofficial Home Assistant integration for [Fresh Harvest](https://freshharvest.com/),
 the Georgia local-produce delivery subscription.
 
@@ -136,3 +134,8 @@ pytest tests/
 Unofficial and unaffiliated — not endorsed by or supported by Fresh Harvest.
 Please do not lower the six-hour poll interval: this is a small business's
 website, not an API.
+
+## Support
+
+If ha-freshharvest is useful to you, consider supporting development via
+[GitHub Sponsors](https://github.com/sponsors/sudolulo) or [Ko-fi](https://ko-fi.com/sudolulo).
