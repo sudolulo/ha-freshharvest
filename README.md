@@ -94,108 +94,6 @@ Every write action fires `freshharvest_action` with `action`, `success`,
 `target` and `detail`, so an automation can notify on an add succeeding or a
 skip failing.
 
-## Consistency guarantees
-
-Two invariants hold against the portal's own arithmetic, and tests assert both:
-
-- `next_delivery_box_price` + `next_delivery_add_ons` == `next_delivery_subtotal`
-- `open_order_free_delivery_remaining` reaching `0.00` always coincides with a
-  `0.00` delivery fee
-
-## Upstream compatibility
-
-freshharvest.com has no API and no stability contract — this integration reads
-HTML and posts to form endpoints, so a redesign can change what a value *means*
-without changing its shape. [tools/compat.py](tools/compat.py) records every
-assumption and CI asserts them against the live site daily, refreshing this
-table and opening an issue on drift.
-
-<!-- COMPAT:START -->
-_Last checked 2026-08-03._
-
-| Area | Assumption | Status | Detail |
-| --- | --- | --- | --- |
-| Login | `/s/popup/login` serves the form | ✅ | 2273 bytes |
-| Login | hidden `LoginSecurity` is minted | ✅ | 154 chars |
-| Login | hidden `SubmitToken` is minted | ✅ | 174 chars |
-| Login | posts to `/s/submit/login` | ✅ | /s/submit/login |
-| Login | field `LoginEmail` present | ✅ |  |
-| Login | field `LoginPassword` present | ✅ |  |
-| Catalogue | Algolia credentials readable from site JS | ✅ | app id + search key found |
-| Catalogue | index name readable | ✅ | dev_FullTest |
-| Catalogue | index returns a plausible catalogue | ✅ | 946 records |
-| Catalogue | record field `ID` | ✅ | present |
-| Catalogue | record field `Name` | ✅ | present |
-| Catalogue | record field `Price` | ✅ | present |
-| Catalogue | record field `Measurement` | ✅ | present |
-| Catalogue | record field `Categories` | ✅ | present |
-| Endpoints | cart add/remove URL shape unchanged | ✅ | /p/Ajax/order-manage/ |
-| Endpoints | popup route is `/x/popup/{type}/{token}` | ✅ | found |
-<!-- COMPAT:END -->
-
-Only the unauthenticated surface is checked here. The authenticated contract —
-dashboard markup, cart add hashes, skip popups, subscribe forms — needs a real
-session, and the only way to give public CI one is to put a personal grocery
-account's password in repo secrets. That half runs on a host that already holds
-the credential.
-
-Worth knowing if you fork this: every markup break so far has been **silent**.
-Subscription rows moved and the integration reported `0` subscriptions; hold
-dates were not ISO and it reported `0` holds. A sensor reading zero is
-indistinguishable from an account with nothing in it, which is exactly why
-these are asserted rather than left to be noticed.
-
-## How it works
-
-Fresh Harvest is not on Shopify, Farmigo, or Local Line — the page metadata
-reports `Vy Technology - Custom Code`. It is a server-rendered jQuery site with
-no JSON API and no mobile app, so this integration signs in and parses HTML.
-
-Login is a two-step handshake:
-
-1. `GET /s/popup/login` returns the form plus two hidden anti-replay fields,
-   `LoginSecurity` and `SubmitToken`, minted per session.
-2. `POST /s/submit/login` with `LoginEmail`, `LoginPassword`, both tokens, and
-   an empty `Redirect`, yielding an `fh_session_authenticated` cookie.
-
-The tokens are bound to the cookie issued by step 1, so both requests must
-share a cookie jar.
-
-A refresh is three GETs: `/p/dashboard/details` for the delivery day, next
-arrival, both upcoming carts and their totals; `/p/dashboard/manage-subscriptions`
-for standing orders; and `/p/dashboard/pause-deliveries` for vacation holds.
-Three requests every six hours.
-
-Write actions cost more, because nothing can be constructed offline — every
-mutating endpoint is guarded by rotating per-render tokens, so each action
-fetches the page that offers it, reads fresh tokens, checks they describe the
-intended target, and only then submits.
-
-## Markup notes
-
-Six traps, none guessable from the outside:
-
-- **HTTP status means nothing.** Every `/p/*` path returns 200, including
-  invented ones. Signed-in state is detected by the presence of a Sign Out
-  control, not by a status code.
-- **`cart-contents-skipped` does not mean the order was skipped.** It marks the
-  locked cart — the one past its cutoff and arriving next. Treating it as
-  "skipped" reports the wrong delivery as cancelled. The reliable signal for
-  "can still be changed" is a non-empty `.cart-customize-wrapper`.
-- **The free-delivery bar only renders on carts below the threshold.** An order
-  that already qualifies has no bar at all, so the threshold is read once from
-  whichever cart shows it and applied to every order.
-- **Popups and AJAX replies are fragments, not pages.** They carry no
-  navigation, so a "am I still signed in?" check based on a Sign Out control
-  reads every one of them as logged out. Skip could not run at all until these
-  were fetched with that check disabled.
-- **`openPopup` is written both `("x","y")` and `("x", "y")`.** A regex
-  requiring no space silently matches nothing on the pages that use the other
-  form — which is every basket page.
-- **A `<select>`'s `id` is not its POST field.** The subscribe form's frequency
-  control is `id='FrequencyID'` but `name='popup-toggle'`. Posting
-  `FrequencyID` is accepted and does nothing.
-
 ## Dashboard
 
 [examples/dashboard-view.yaml](examples/dashboard-view.yaml) is a ready-made tab
@@ -203,20 +101,35 @@ Six traps, none guessable from the outside:
 full box contents rendered from the attributes, and the still-changeable order.
 Paste it under `views:` in the raw configuration editor.
 
-## Tests
+## Requirements
+
+Home Assistant 2025.2 or newer. Developed and running against 2026.7.
+
+## Troubleshooting
+
+**Everything shows `unavailable`.** The session expired and could not be
+renewed — usually a changed password. Reload the integration, or remove and
+re-add it.
+
+**A count reads `0` when you know it should not.** Fresh Harvest changed their
+site. That is drift, not your configuration; please open an issue.
+
+**Adding an item fails.** The item is not orderable for the open delivery. The
+site only offers an add control for things it can actually deliver, so this is
+the same answer you would get on the website.
+
+**The box shows the wrong contents.** Contents are assigned a few days before
+delivery; an order that has not been filled yet legitimately has none.
+
+## Contributing
+
+Implementation notes, the endpoints this uses, and the markup traps worth
+knowing are in [docs/internals.md](docs/internals.md).
 
 ```
 pip install beautifulsoup4 pytest yarl
 pytest tests/
 ```
-
-The fixture is synthetic but mirrors the real markup, with placeholder cart IDs
-and self-consistent totals; the live page carries the account holder's name,
-address and phone number, so it is never committed.
-
-## Compatibility
-
-Requires Home Assistant 2025.2 or newer. Developed and running against 2026.7.
 
 ## Disclaimer
 

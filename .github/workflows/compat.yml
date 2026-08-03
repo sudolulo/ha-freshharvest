@@ -26,9 +26,9 @@ on:
       - ".github/workflows/compat.yml"
 
 permissions:
-  contents: write
+  # Read-only on contents: this workflow reports, it does not write to the repo.
+  contents: read
   issues: write
-  pull-requests: write
 
 jobs:
   compat:
@@ -48,42 +48,18 @@ jobs:
           echo "failures=$?" >> "$GITHUB_OUTPUT"
           cat matrix.md
 
-      - name: Refresh the matrix in README
+      - name: Publish the matrix to the run summary
         run: |
-          python - <<'PY'
-          import pathlib, re, datetime
-          matrix = pathlib.Path("matrix.md").read_text().strip()
-          stamp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
-          block = f"<!-- COMPAT:START -->\n_Last checked {stamp}._\n\n{matrix}\n<!-- COMPAT:END -->"
-          readme = pathlib.Path("README.md")
-          text = readme.read_text()
-          new = re.sub(r"<!-- COMPAT:START -->.*<!-- COMPAT:END -->", block, text, flags=re.S)
-          if new != text:
-              readme.write_text(new)
-              print("README matrix updated")
-          else:
-              print("no change")
-          PY
-
-      - name: Commit the refreshed matrix
-        run: |
-          if git diff --quiet README.md; then
-            echo "nothing to commit"; exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "Refresh the upstream compatibility matrix"
-          # GitHub is a MIRROR of Gitea, never a source of truth, so this must not
-          # push. It opens a PR instead; merge it on the canonical forge.
-          BRANCH="compat/refresh-$(date -u +%Y%m%d)"
-          git checkout -b "$BRANCH"
-          git push -f origin "$BRANCH"
-          gh pr list --head "$BRANCH" --state open --json number -q '.[0].number' | grep -q . \
-            || gh pr create --head "$BRANCH" --title "Refresh the upstream compatibility matrix" \
-                 --body "Automated: freshharvest.com assumption check. See the matrix in README."
-        env:
-          GH_TOKEN: ${{ github.token }}
+          # Deliberately does NOT commit. GitHub is a read-only mirror of Gitea,
+          # so anything a bot pushes here is clobbered by the next sync, and
+          # opening a PR needs a repo setting that a mirror should not depend
+          # on. The badge should mean "is upstream still compatible", not "did
+          # the bot manage its own bookkeeping".
+          {
+            echo "## Upstream compatibility"
+            echo
+            cat matrix.md
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open an issue when the site has drifted
         if: steps.check.outputs.failures != '0'
