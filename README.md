@@ -47,6 +47,14 @@ Two traps are worth recording, since neither is guessable from the outside:
   "skipped" reports the wrong delivery as cancelled. The reliable signal for
   "can still be changed" is a non-empty `.cart-customize-wrapper`.
 
+## Dashboard
+
+[examples/dashboard-view.yaml](examples/dashboard-view.yaml) is a ready-made tab
+for these sensors — a countdown heading ("Arriving tomorrow"), tiles for the
+date, total and item count, the full box contents rendered from the attributes,
+and the still-changeable order with a link back to the portal. Paste it under
+`views:` in the raw configuration editor.
+
 ## Installation
 
 Copy `custom_components/freshharvest/` into your Home Assistant

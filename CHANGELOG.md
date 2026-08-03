@@ -25,3 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parsing, and year rollover on undated cart tabs.
 - English translations under `translations/en.json`, which is where custom
   integrations read entity and config-flow strings from.
+- Example dashboard view under `examples/dashboard-view.yaml`: a three-section
+  tab with a delivery countdown, order tiles, and the full box contents.

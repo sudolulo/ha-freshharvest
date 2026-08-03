@@ -1,0 +1,92 @@
+# Fresh Harvest dashboard view.
+#
+# This is the tab shipped alongside the integration: three sections covering the
+# next delivery, what is in the box, and the order that can still be changed.
+#
+# To use it, open your dashboard, choose "Edit dashboard" -> "Raw configuration
+# editor", and paste this under `views:`. It only needs the five sensors the
+# integration creates.
+
+type: sections
+max_columns: 4
+icon: mdi:basket
+path: fresh-harvest
+sections:
+- type: grid
+  cards:
+  - type: heading
+    heading: Next Delivery
+    heading_style: title
+    icon: mdi:truck-delivery
+  - type: markdown
+    content: |-
+      {%- set d = states('sensor.fresh_harvest_next_delivery') -%}
+      {%- set box = state_attr('sensor.fresh_harvest_next_delivery_items', 'box') -%}
+      {%- if d not in ['unknown', 'unavailable', 'none'] -%}
+      {%- set days = (d | as_datetime).date() - now().date() -%}
+      {%- set n = days.days -%}
+      ## {% if n < 0 %}Delivered{% elif n == 0 %}Arriving today{% elif n == 1 %}Arriving tomorrow{% else %}Arriving in {{ n }} days{% endif %}
+      {{ (d | as_datetime).strftime('%A, %B %-d') }}{% if box %} · {{ box }}{% endif %}
+      {%- else -%}
+      ## No delivery scheduled
+      {%- endif -%}
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery
+    name: Arriving
+    icon: mdi:calendar-clock
+    color: green
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery_total
+    name: Order total
+    icon: mdi:cash-multiple
+    color: teal
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery_items
+    name: Items
+    icon: mdi:basket-check
+    color: light-green
+- type: grid
+  cards:
+  - type: heading
+    heading: What's Coming
+    heading_style: title
+    icon: mdi:carrot
+  - type: markdown
+    content: |-
+      {%- set produce = state_attr('sensor.fresh_harvest_next_delivery_items', 'produce') or [] -%}
+      {%- set addons = state_attr('sensor.fresh_harvest_next_delivery_items', 'add_ons') or [] -%}
+      {%- if produce -%}
+      **In the box**
+      {% for i in produce %}
+      - {{ i }}
+      {%- endfor %}
+      {%- else -%}
+      _Box contents not assigned yet._
+      {%- endif %}
+      {% if addons %}
+      **Add-ons**
+      {% for a in addons %}
+      - {{ a }}
+      {%- endfor %}
+      {%- endif -%}
+- type: grid
+  cards:
+  - type: heading
+    heading: Still Open
+    heading_style: title
+    icon: mdi:cart-arrow-right
+  - type: tile
+    entity: sensor.fresh_harvest_open_order_delivery
+    name: Delivery
+    icon: mdi:calendar-arrow-right
+    color: amber
+  - type: tile
+    entity: sensor.fresh_harvest_shopping_window
+    name: Shopping window
+    icon: mdi:clock-alert-outline
+    color: orange
+  - type: markdown
+    content: |-
+      Once an order passes its cutoff it locks for packing, and the following week's cart opens.
+
+      [Change this order →](https://freshharvest.com/p/dashboard/manage-orders)
