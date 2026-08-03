@@ -323,7 +323,7 @@ class FreshHarvestActions:
         return await self._client.async_fetch(SHOP_ITEM.format(item_id=item_id))
 
     async def async_add_item(
-        self, item_id: int | str, dry_run: bool = True
+        self, item_id: int | str, dry_run: bool = True, name: str | None = None
     ) -> ActionResult:
         """Add one of an item to the open order.
 
@@ -331,14 +331,16 @@ class FreshHarvestActions:
         absence *is* the out-of-stock signal — no separate stock lookup can go
         stale behind our back.
         """
-        return await self._cart_action("add", item_id, dry_run)
+        return await self._cart_action("add", item_id, dry_run, name)
 
     async def async_remove_item(
-        self, item_id: int | str, dry_run: bool = True
+        self, item_id: int | str, dry_run: bool = True, name: str | None = None
     ) -> ActionResult:
-        return await self._cart_action("remove", item_id, dry_run)
+        return await self._cart_action("remove", item_id, dry_run, name)
 
-    async def _cart_action(self, mode: str, item_id, dry_run: bool) -> ActionResult:
+    async def _cart_action(
+        self, mode: str, item_id, dry_run: bool, name: str | None = None
+    ) -> ActionResult:
         page = await self._item_page(item_id)
         m = re.search(r'orderManage\("%s","([^"]+)"' % mode, page)
         if not m:
@@ -346,14 +348,16 @@ class FreshHarvestActions:
                 f"item {item_id} cannot be {mode}ed right now — the page offers "
                 "no control for it, which usually means it is out of stock"
             )
-        name = BeautifulSoup(page, "html.parser").select_one(".item-name")
+        # Do NOT scrape a name off this page: the first `.item-name` belongs to
+        # whatever is in the mini-cart, not the item being acted on, so an add
+        # would announce someone else's groceries. Callers know the real name.
         url = AJAX_ORDER_MANAGE.format(
             mode=mode, hash=m.group(1), ts=int(time.time() * 1000)
         )
         result = ActionResult(
             action=f"{mode}_item",
             ok=True,
-            target=name.get_text(" ", strip=True) if name else str(item_id),
+            target=name or str(item_id),
             submitted={"url": url},
             dry_run=dry_run,
             detail=f"{mode} item {item_id}",

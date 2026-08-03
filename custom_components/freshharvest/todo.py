@@ -151,7 +151,7 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
         item_id, name = await self._algolia_lookup(query)
         try:
             result = await self.coordinator.actions.async_add_item(
-                item_id, dry_run=False
+                item_id, dry_run=False, name=name
             )
         except FreshHarvestError as err:
             self._fire(EVENT_ACTION, "add_item", False, query, str(err))
@@ -166,7 +166,7 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
             item_id, name = await self._algolia_lookup(uid)
             try:
                 await self.coordinator.actions.async_remove_item(
-                    item_id, dry_run=False
+                    item_id, dry_run=False, name=name
                 )
             except FreshHarvestError as err:
                 self._fire(EVENT_ACTION, "remove_item", False, uid, str(err))
