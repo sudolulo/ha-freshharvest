@@ -35,10 +35,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heading row, so an account with a live subscription reported zero. Cells are
   now picked by semantic class. Regression covered in `tests/test_actions.py`.
 
+- Restore (un-skip) via `POST /s/submit/restore-delivery`, wired to
+  `switch.turn_off`. The restore popup only exists once an order is actually
+  skipped, which is why it could not be found until one was. Verified end to
+  end against a live order: skipped Aug 18, restored it, confirmed the account
+  returned to its previous state.
+
+### Fixed
+
+- Subscription parsing matched `.account-item-multi-fields`, which is the
+  heading row, so an account with a live subscription reported zero. Cells are
+  now picked by semantic class. Regression covered in `tests/test_actions.py`.
+- `async_fetch` treated popup bodies and AJAX replies as full pages. Those are
+  fragments with no navigation, so the signed-in heuristic read every one as
+  logged out, re-authenticated pointlessly and then failed. They now pass
+  `is_page=False`. This blocked skip entirely.
+- The to-do list mixed produce-box contents with add-ons. Only add-ons can be
+  added and removed — the box is chosen, not assembled — so listing produce
+  invited deletes with no endpoint behind them. The entity is now
+  `todo.fresh_harvest_add_ons`; box contents stay read-only on
+  `sensor.*_next_delivery_items`.
+
 ### Known gaps
 
-- Un-skip raises rather than guessing: the portal's restore control only
-  appears once an order is skipped, so its endpoint has never been observed.
 - Entities are deliberately NOT exposed to the conversation agent yet.
 
 ### Notes

@@ -366,18 +366,23 @@ class FreshHarvestClient:
         """
         return "sign out" in body.lower()
 
-    async def async_fetch(self, path: str) -> str:
-        """Fetch any portal page, re-authenticating once if the session lapsed.
+    async def async_fetch(self, path: str, *, is_page: bool = True) -> str:
+        """Fetch from the portal, re-authenticating once if the session lapsed.
 
         The shared primitive for reads and for the token-scraping that every
         write action in `actions.py` has to do first.
+
+        Set ``is_page=False`` for popup bodies and AJAX replies. Those are HTML
+        *fragments* with no navigation, so they never contain a Sign Out control
+        and the signed-in heuristic would read every one of them as logged out —
+        re-authenticating pointlessly and then failing.
         """
         if not self._authenticated:
             await self.async_login()
 
         try:
             body = await self._get(path)
-            if not self._signed_in(body):
+            if is_page and not self._signed_in(body):
                 self._authenticated = False
                 await self.async_login()
                 body = await self._get(path)

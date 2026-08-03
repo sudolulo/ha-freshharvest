@@ -1,12 +1,24 @@
-"""The upcoming box as a to-do list.
+"""The order's ADD-ONS as a to-do list.
 
-This exists so Home Assistant's own conversation agent can manage the order with
+Two different things arrive in a delivery and only one of them is a list you
+can edit:
+
+* The **produce box** — the Georgia Grown Small Box and its contents. Fresh
+  Harvest fills it; you pick the box, not the carrots in it. Swapping it is
+  "Change Basket" on the portal, and its contents are read-only here, exposed
+  as the `produce` attribute of `sensor.*_next_delivery_items`.
+* The **add-ons** — everything you chose individually. These are genuinely
+  addable and removable, one endpoint each way.
+
+This entity is the add-ons, because those are the ones where "add X" and
+"remove X" mean something. Listing box produce here would invite a delete that
+has no endpoint behind it, and the failure would surface as a confusing error
+rather than "that is not a thing you can do".
+
+It exists so Home Assistant's own conversation agent can manage the order with
 no bespoke voice work: the built-in assistant already knows how to add and
-remove to-do items, so "add bananas to my Fresh Harvest box" routes through
+remove to-do items, so "add bananas to my Fresh Harvest add-ons" routes through
 `HassListAddItem` and lands here.
-
-Adding an item resolves the spoken name against the site's own search index,
-then adds the match to the open order. Removing one takes it back out.
 """
 
 from __future__ import annotations
@@ -51,7 +63,7 @@ async def async_setup_entry(
 class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
     """Everything in the upcoming delivery, as a list."""
 
-    _attr_translation_key = "box"
+    _attr_translation_key = "add_ons"
     _attr_supported_features = (
         TodoListEntityFeature.CREATE_TODO_ITEM
         | TodoListEntityFeature.DELETE_TODO_ITEM
@@ -60,18 +72,23 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
     def __init__(
         self, coordinator: FreshHarvestCoordinator, entry: FreshHarvestConfigEntry
     ) -> None:
-        super().__init__(coordinator, entry, "box")
+        super().__init__(coordinator, entry, "add_ons")
         self._entry = entry
 
     @property
     def todo_items(self) -> list[TodoItem] | None:
-        """The open order's contents, or the next delivery's once it locks."""
+        """The open order's add-ons — the part of a delivery you control.
+
+        Scoped to the *open* order rather than the next arriving one, because a
+        delete has to act on the order actually being shown; the next delivery
+        is usually already locked for packing.
+        """
         snapshot = self.coordinator.data
-        order = snapshot.open_order or snapshot.next_order
+        order = snapshot.open_order
         if order is None:
             return None
         items: list[TodoItem] = []
-        for item in order.all_items:
+        for item in order.addons:
             label = " ".join(
                 p for p in (str(item.quantity or ""), item.name, item.unit) if p
             )
@@ -81,8 +98,8 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
                 TodoItem(
                     summary=label,
                     uid=item.name,
-                    # The box is a standing order, not a checklist: nothing here
-                    # is ever "done", it either is or is not in the delivery.
+                    # Not a checklist: nothing here is ever "done", an add-on
+                    # either is or is not in the delivery.
                     status=TodoItemStatus.NEEDS_ACTION,
                 )
             )

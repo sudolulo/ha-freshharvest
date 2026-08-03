@@ -39,6 +39,7 @@ DASHBOARD_PAUSE = "/p/dashboard/pause-deliveries"
 SHOP_ITEM = "/p/shop/item/{item_id}/x"
 
 SUBMIT_SKIP = "/s/submit/pause-delivery"
+SUBMIT_RESTORE = "/s/submit/restore-delivery"
 SUBMIT_DONATE = "/s/submit/donate-basket"
 SUBMIT_SUBSCRIBE = "/s/submit/item-frequency"
 SUBMIT_HOLD = "/s/submit/pause-range-add"
@@ -210,7 +211,9 @@ class FreshHarvestActions:
             raise FreshHarvestActionError("no skippable delivery on this account")
 
         for token in dict.fromkeys(tokens):
-            popup = await self._client.async_fetch(f"/x/popup/pause-delivery/{token}")
+            popup = await self._client.async_fetch(
+                f"/x/popup/pause-delivery/{token}", is_page=False
+            )
             form = _find_form(BeautifulSoup(popup, "html.parser"), SUBMIT_SKIP)
             if form is None:
                 # Several tokens on the page are for other popups and fall
@@ -254,6 +257,43 @@ class FreshHarvestActions:
             "cutoff and locked for packing"
         )
 
+    async def async_restore(
+        self, delivery_date: date, dry_run: bool = True
+    ) -> ActionResult:
+        """Un-skip a delivery.
+
+        The restore popup only exists once an order is actually skipped — it is
+        not on the page beforehand — so this is the exact inverse of a skip and
+        raises when there is nothing to restore.
+        """
+        page = await self._client.async_fetch(DASHBOARD_ORDERS)
+        tokens = re.findall(r'openPopup\("restore-delivery","([^"]+)"', page)
+        if not tokens:
+            raise FreshHarvestActionError("no skipped delivery to restore")
+
+        for token in dict.fromkeys(tokens):
+            popup = await self._client.async_fetch(
+                f"/x/popup/restore-delivery/{token}", is_page=False
+            )
+            soup = BeautifulSoup(popup, "html.parser")
+            form = _find_form(soup, SUBMIT_RESTORE)
+            if form is None:
+                continue
+            stated = _confirmation_date(soup.get_text(" ", strip=True))
+            if stated is not None and stated != delivery_date:
+                continue
+            payload = _hidden_fields(form) | {"Continue": "Confirm"}
+            result = ActionResult(
+                action="restore", ok=True, target=delivery_date.isoformat(),
+                submitted=payload, dry_run=dry_run,
+                detail=f"restore {delivery_date}",
+            )
+            if not dry_run:
+                await self._post(SUBMIT_RESTORE, payload)
+            return result
+
+        raise FreshHarvestActionError(f"no restore token matched {delivery_date}")
+
     # ---------------------------------------------------------------- donate
 
     async def async_donate(self, dry_run: bool = True) -> ActionResult:
@@ -262,7 +302,9 @@ class FreshHarvestActions:
         m = re.search(r'openPopup\("donate-delivery","([^"]+)"', page)
         if not m:
             raise FreshHarvestActionError("no donatable delivery")
-        popup = await self._client.async_fetch(f"/x/popup/donate-delivery/{m.group(1)}")
+        popup = await self._client.async_fetch(
+            f"/x/popup/donate-delivery/{m.group(1)}", is_page=False
+        )
         form = _find_form(BeautifulSoup(popup, "html.parser"), SUBMIT_DONATE)
         if form is None:
             raise FreshHarvestActionError("donate form not found")
@@ -317,9 +359,8 @@ class FreshHarvestActions:
             detail=f"{mode} item {item_id}",
         )
         if not dry_run:
-            # A fragment, not a page: no Sign Out control to detect, so bypass
-            # the signed-in check. The item fetch above already renewed the session.
-            await self._client._get(url)  # noqa: SLF001 — same package
+            # A fragment, not a page — see async_fetch(is_page=...).
+            await self._client.async_fetch(url, is_page=False)
         return result
 
     # --------------------------------------------------------- subscriptions

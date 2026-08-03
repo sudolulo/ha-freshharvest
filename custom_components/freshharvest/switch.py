@@ -76,17 +76,19 @@ class FreshHarvestSkip(FreshHarvestEntity, SwitchEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Un-skip — deliberately not implemented.
-
-        The portal's restore control only appears once an order is already
-        skipped, so its endpoint has never been observed. Guessing at the way
-        back from a skip is exactly the kind of thing that should fail loudly
-        rather than post something plausible at a real order.
-        """
-        raise HomeAssistantError(
-            "un-skipping is not supported yet: the restore endpoint has not "
-            "been confirmed. Restore it on freshharvest.com for now."
-        )
+        """Un-skip the delivery."""
+        order = self.coordinator.data.open_order
+        if order is None or order.delivery_date is None:
+            raise HomeAssistantError("no delivery to restore")
+        try:
+            result = await self.coordinator.actions.async_restore(
+                order.delivery_date, dry_run=False
+            )
+        except FreshHarvestError as err:
+            self._fire("restore", False, str(order.delivery_date), str(err))
+            raise HomeAssistantError(f"could not restore: {err}") from err
+        self._fire("restore", True, str(order.delivery_date), result.detail)
+        await self.coordinator.async_request_refresh()
 
     def _fire(self, action: str, ok: bool, target: str, detail: str) -> None:
         self.hass.bus.async_fire(

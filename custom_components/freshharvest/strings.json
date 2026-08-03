@@ -81,8 +81,8 @@
       }
     },
     "todo": {
-      "box": {
-        "name": "Box"
+      "add_ons": {
+        "name": "Add-ons"
       }
     }
   }
