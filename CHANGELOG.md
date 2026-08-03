@@ -23,3 +23,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   count, open order delivery date, and shopping window.
 - Parser tests covering totals, contents, the locked/open distinction, money
   parsing, and year rollover on undated cart tabs.
+- English translations under `translations/en.json`, which is where custom
+  integrations read entity and config-flow strings from.

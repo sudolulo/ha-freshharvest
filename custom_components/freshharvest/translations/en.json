@@ -1,0 +1,29 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Sign in with your freshharvest.com account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication"
+    },
+    "abort": {
+      "already_configured": "This account is already configured"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_delivery": { "name": "Next delivery" },
+      "next_delivery_total": { "name": "Next delivery total" },
+      "next_delivery_items": { "name": "Next delivery items" },
+      "open_order_delivery": { "name": "Open order delivery" },
+      "shop_window": { "name": "Shopping window" }
+    }
+  }
+}
