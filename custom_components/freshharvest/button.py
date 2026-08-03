@@ -13,7 +13,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FreshHarvestConfigEntry
 from .api import FreshHarvestError
-from .const import DOMAIN, EVENT_ACTION
 from .coordinator import FreshHarvestCoordinator
 from .entity import FreshHarvestEntity
 
@@ -42,7 +41,6 @@ class FreshHarvestDonate(FreshHarvestEntity, ButtonEntity):
         self, coordinator: FreshHarvestCoordinator, entry: FreshHarvestConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, DESCRIPTION.key)
-        self._entry = entry
 
     @property
     def available(self) -> bool:
@@ -53,15 +51,8 @@ class FreshHarvestDonate(FreshHarvestEntity, ButtonEntity):
         try:
             result = await self.coordinator.actions.async_donate(dry_run=False)
         except FreshHarvestError as err:
-            self._fire(False, str(err))
+            self.fire_action("donate", False, "open order", str(err))
             raise HomeAssistantError(f"could not donate: {err}") from err
-        self._fire(True, result.detail)
+        self.fire_action("donate", True, "open order", result.detail)
         await self.coordinator.async_request_refresh()
 
-    def _fire(self, ok: bool, detail: str) -> None:
-        self.hass.bus.async_fire(
-            EVENT_ACTION,
-            {"domain": DOMAIN, "entry_id": self._entry.entry_id,
-             "action": "donate", "success": ok, "target": "open order",
-             "detail": detail},
-        )

@@ -15,7 +15,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import AccountSnapshot, DeliveryOrder
-from .const import DOMAIN
+from .const import DOMAIN, EVENT_ACTION
 from .coordinator import FreshHarvestCoordinator
 
 Scope = Literal["account", "next_order", "open_order"]
@@ -54,3 +54,21 @@ class FreshHarvestEntity(CoordinatorEntity[FreshHarvestCoordinator]):
     def target(self, scope: Scope) -> AccountSnapshot | DeliveryOrder | None:
         """Resolve this entity's scope against the latest snapshot."""
         return resolve_scope(self.coordinator.data, scope)
+
+    def fire_action(self, action: str, ok: bool, target: str, detail: str) -> None:
+        """Announce a write action's outcome so automations can notify on it.
+
+        Lives here because all four control platforms need it identically; four
+        private copies drifted apart the moment one of them gained a field.
+        """
+        self.hass.bus.async_fire(
+            EVENT_ACTION,
+            {
+                "domain": DOMAIN,
+                "entry_id": self.coordinator.config_entry.entry_id,
+                "action": action,
+                "success": ok,
+                "target": target,
+                "detail": detail,
+            },
+        )

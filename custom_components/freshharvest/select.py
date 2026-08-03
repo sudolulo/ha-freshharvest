@@ -20,7 +20,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FreshHarvestConfigEntry
 from .api import FreshHarvestError
-from .const import DOMAIN, EVENT_ACTION
 from .coordinator import FreshHarvestCoordinator
 from .entity import FreshHarvestEntity
 
@@ -51,7 +50,6 @@ class FreshHarvestBoxSelect(FreshHarvestEntity, SelectEntity):
         self, coordinator: FreshHarvestCoordinator, entry: FreshHarvestConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, DESCRIPTION.key)
-        self._entry = entry
         self._options: list[str] = []
 
     @property
@@ -98,15 +96,8 @@ class FreshHarvestBoxSelect(FreshHarvestEntity, SelectEntity):
                 option, all_future=False, dry_run=False
             )
         except FreshHarvestError as err:
-            self._fire(False, option, str(err))
+            self.fire_action("change_basket", False, option, str(err))
             raise HomeAssistantError(f"could not switch to {option}: {err}") from err
-        self._fire(True, option, result.detail)
+        self.fire_action("change_basket", True, option, result.detail)
         await self.coordinator.async_request_refresh()
 
-    def _fire(self, ok: bool, target: str, detail: str) -> None:
-        self.hass.bus.async_fire(
-            EVENT_ACTION,
-            {"domain": DOMAIN, "entry_id": self._entry.entry_id,
-             "action": "change_basket", "success": ok, "target": target,
-             "detail": detail},
-        )

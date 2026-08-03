@@ -202,7 +202,116 @@ def _confirmation_date(text: str) -> date | None:
         return None
 
 
-class FreshHarvestActions:
+@dataclass
+class Basket:
+    """A produce box you can switch to."""
+
+    item_id: str
+    name: str
+    is_current: bool = False
+    token: str = ""
+
+
+class BasketMixin:
+    """Produce-box switching. Mixed into FreshHarvestActions.
+
+    A box is not an add-on: you swap which box arrives, you do not add or
+    remove the produce inside it. The switch also has a scope the add-on
+    endpoints do not — one delivery, or every future one.
+    """
+
+    async def async_list_baskets(self) -> list[Basket]:
+        """Every box you could switch TO.
+
+        Each option's real name lives in its own popup rather than the grid
+        (the grid calls them all "Georgia Box"), so this reads them there.
+
+        The box you are already on is deliberately absent: the site offers no
+        "switch to this" control for it, so there is no popup and no name. Its
+        id shows up as every popup's `ReplaceItemID`, which is what
+        `current_basket_id` returns; its NAME comes from the subscription list.
+        """
+        baskets: list[Basket] = []
+        seen: set[str] = set()
+        for group in BASKET_GROUPS:
+            page = await self._client.async_fetch(f"{BASKET_TYPES}/{group}")
+            tokens = dict.fromkeys(
+                re.findall(r'openPopup\("select-basket",\s*"([^"]+)"', page)
+            )
+            for token in tokens:
+                popup = await self._client.async_fetch(
+                    f"/x/popup/select-basket/{token}", is_page=False
+                )
+                soup = BeautifulSoup(popup, "html.parser")
+                form = _find_form(soup, SUBMIT_BASKET)
+                if form is None:
+                    continue  # a catch-all page, not a real popup
+                fields = _hidden_fields(form)
+                item_id = fields.get("ItemID", "")
+                if not item_id or item_id in seen:
+                    continue
+                seen.add(item_id)
+                heading = soup.select_one("h4, h5, h6")
+                baskets.append(
+                    Basket(
+                        item_id=item_id,
+                        name=(heading.get_text(" ", strip=True) if heading else item_id),
+                        is_current=False,  # see the docstring: never offered
+                        token=token,
+                    )
+                )
+        return baskets
+
+    async def async_current_basket_id(self) -> str | None:
+        """The id of the box currently subscribed, read off any switch popup."""
+        for group in BASKET_GROUPS:
+            page = await self._client.async_fetch(f"{BASKET_TYPES}/{group}")
+            for token in dict.fromkeys(
+                re.findall(r'openPopup\("select-basket",\s*"([^"]+)"', page)
+            ):
+                popup = await self._client.async_fetch(
+                    f"/x/popup/select-basket/{token}", is_page=False
+                )
+                form = _find_form(BeautifulSoup(popup, "html.parser"), SUBMIT_BASKET)
+                if form is not None:
+                    return _hidden_fields(form).get("ReplaceItemID")
+        return None
+
+    async def async_change_basket(
+        self, name_or_id: str, all_future: bool = False, dry_run: bool = True
+    ) -> ActionResult:
+        """Switch to a different produce box.
+
+        `all_future=False` changes only the next delivery; True changes the
+        standing order. Defaulting to the one-off is deliberate — a mistaken
+        permanent change is the more annoying of the two to undo.
+        """
+        wanted = str(name_or_id).strip().lower()
+        for basket in await self.async_list_baskets():
+            if wanted not in (basket.item_id.lower(), basket.name.lower()):
+                continue
+            popup = await self._client.async_fetch(
+                f"/x/popup/select-basket/{basket.token}", is_page=False
+            )
+            form = _find_form(BeautifulSoup(popup, "html.parser"), SUBMIT_BASKET)
+            if form is None:
+                raise FreshHarvestActionError("basket form disappeared mid-flight")
+            payload = _hidden_fields(form)
+            payload["popup-toggle"] = SCOPE_STANDING if all_future else SCOPE_ONCE
+            scope = "all future orders" if all_future else "the next delivery only"
+            result = ActionResult(
+                action="change_basket", ok=True, target=basket.name,
+                submitted=payload, dry_run=dry_run,
+                detail=f"switch to {basket.name} for {scope}",
+            )
+            if not dry_run:
+                await self._post(SUBMIT_BASKET, payload)
+            return result
+
+        raise FreshHarvestActionError(f"no box matches {name_or_id!r}")
+
+
+class FreshHarvestActions(BasketMixin):
     """Mutating operations, each re-deriving its tokens from a live page."""
 
     def __init__(self, client: FreshHarvestClient) -> None:
@@ -492,116 +601,3 @@ class FreshHarvestActions:
         if not dry_run:
             await self._post(SUBMIT_HOLD_REMOVE, payload)
         return result
-
-
-@dataclass
-class Basket:
-    """A produce box you can switch to."""
-
-    item_id: str
-    name: str
-    is_current: bool = False
-    token: str = ""
-
-
-class BasketMixin:
-    """Produce-box switching, mixed into FreshHarvestActions below.
-
-    A box is not an add-on: you swap which box arrives, you do not add or
-    remove the produce inside it. The switch also has a scope the add-on
-    endpoints do not — one delivery, or every future one.
-    """
-
-    async def async_list_baskets(self) -> list[Basket]:
-        """Every box you could switch TO.
-
-        Each option's real name lives in its own popup rather than the grid
-        (the grid calls them all "Georgia Box"), so this reads them there.
-
-        The box you are already on is deliberately absent: the site offers no
-        "switch to this" control for it, so there is no popup and no name. Its
-        id shows up as every popup's `ReplaceItemID`, which is what
-        `current_basket_id` returns; its NAME comes from the subscription list.
-        """
-        baskets: list[Basket] = []
-        seen: set[str] = set()
-        for group in BASKET_GROUPS:
-            page = await self._client.async_fetch(f"{BASKET_TYPES}/{group}")
-            tokens = dict.fromkeys(
-                re.findall(r'openPopup\("select-basket",\s*"([^"]+)"', page)
-            )
-            for token in tokens:
-                popup = await self._client.async_fetch(
-                    f"/x/popup/select-basket/{token}", is_page=False
-                )
-                soup = BeautifulSoup(popup, "html.parser")
-                form = _find_form(soup, SUBMIT_BASKET)
-                if form is None:
-                    continue  # a catch-all page, not a real popup
-                fields = _hidden_fields(form)
-                item_id = fields.get("ItemID", "")
-                if not item_id or item_id in seen:
-                    continue
-                seen.add(item_id)
-                heading = soup.select_one("h4, h5, h6")
-                baskets.append(
-                    Basket(
-                        item_id=item_id,
-                        name=(heading.get_text(" ", strip=True) if heading else item_id),
-                        is_current=False,  # see the docstring: never offered
-                        token=token,
-                    )
-                )
-        return baskets
-
-    async def async_current_basket_id(self) -> str | None:
-        """The id of the box currently subscribed, read off any switch popup."""
-        for group in BASKET_GROUPS:
-            page = await self._client.async_fetch(f"{BASKET_TYPES}/{group}")
-            for token in dict.fromkeys(
-                re.findall(r'openPopup\("select-basket",\s*"([^"]+)"', page)
-            ):
-                popup = await self._client.async_fetch(
-                    f"/x/popup/select-basket/{token}", is_page=False
-                )
-                form = _find_form(BeautifulSoup(popup, "html.parser"), SUBMIT_BASKET)
-                if form is not None:
-                    return _hidden_fields(form).get("ReplaceItemID")
-        return None
-
-    async def async_change_basket(
-        self, name_or_id: str, all_future: bool = False, dry_run: bool = True
-    ) -> ActionResult:
-        """Switch to a different produce box.
-
-        `all_future=False` changes only the next delivery; True changes the
-        standing order. Defaulting to the one-off is deliberate — a mistaken
-        permanent change is the more annoying of the two to undo.
-        """
-        wanted = str(name_or_id).strip().lower()
-        for basket in await self.async_list_baskets():
-            if wanted not in (basket.item_id.lower(), basket.name.lower()):
-                continue
-            popup = await self._client.async_fetch(
-                f"/x/popup/select-basket/{basket.token}", is_page=False
-            )
-            form = _find_form(BeautifulSoup(popup, "html.parser"), SUBMIT_BASKET)
-            if form is None:
-                raise FreshHarvestActionError("basket form disappeared mid-flight")
-            payload = _hidden_fields(form)
-            payload["popup-toggle"] = SCOPE_STANDING if all_future else SCOPE_ONCE
-            scope = "all future orders" if all_future else "the next delivery only"
-            result = ActionResult(
-                action="change_basket", ok=True, target=basket.name,
-                submitted=payload, dry_run=dry_run,
-                detail=f"switch to {basket.name} for {scope}",
-            )
-            if not dry_run:
-                await self._post(SUBMIT_BASKET, payload)
-            return result
-
-        raise FreshHarvestActionError(f"no box matches {name_or_id!r}")
-
-
-class FreshHarvestActions(FreshHarvestActions, BasketMixin):  # noqa: F811
-    """Actions plus basket switching."""

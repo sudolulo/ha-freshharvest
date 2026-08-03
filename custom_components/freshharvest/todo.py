@@ -40,7 +40,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FreshHarvestConfigEntry
 from .api import FreshHarvestError
-from .const import DOMAIN, EVENT_ACTION
 from .coordinator import FreshHarvestCoordinator
 from .entity import FreshHarvestEntity
 
@@ -73,7 +72,6 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
         self, coordinator: FreshHarvestCoordinator, entry: FreshHarvestConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "add_ons")
-        self._entry = entry
 
     @property
     def todo_items(self) -> list[TodoItem] | None:
@@ -154,10 +152,10 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
                 item_id, dry_run=False, name=name
             )
         except FreshHarvestError as err:
-            self._fire(EVENT_ACTION, "add_item", False, query, str(err))
+            self.fire_action("add_item", False, query, str(err))
             raise HomeAssistantError(f"could not add {name}: {err}") from err
 
-        self._fire(EVENT_ACTION, "add_item", True, name, result.detail)
+        self.fire_action("add_item", True, name, result.detail)
         await self.coordinator.async_request_refresh()
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
@@ -169,21 +167,8 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
                     item_id, dry_run=False, name=name
                 )
             except FreshHarvestError as err:
-                self._fire(EVENT_ACTION, "remove_item", False, uid, str(err))
+                self.fire_action("remove_item", False, uid, str(err))
                 raise HomeAssistantError(f"could not remove {name}: {err}") from err
-            self._fire(EVENT_ACTION, "remove_item", True, name, "removed")
+            self.fire_action("remove_item", True, name, "removed")
         await self.coordinator.async_request_refresh()
 
-    def _fire(self, event: str, action: str, ok: bool, target: str, detail: str) -> None:
-        """Announce the outcome so automations can notify on it."""
-        self.hass.bus.async_fire(
-            event,
-            {
-                "domain": DOMAIN,
-                "entry_id": self._entry.entry_id,
-                "action": action,
-                "success": ok,
-                "target": target,
-                "detail": detail,
-            },
-        )

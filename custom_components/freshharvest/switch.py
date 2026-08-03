@@ -16,7 +16,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FreshHarvestConfigEntry
 from .api import FreshHarvestError
-from .const import DOMAIN, EVENT_ACTION
 from .coordinator import FreshHarvestCoordinator
 from .entity import FreshHarvestEntity
 
@@ -47,7 +46,6 @@ class FreshHarvestSkip(FreshHarvestEntity, SwitchEntity):
         self, coordinator: FreshHarvestCoordinator, entry: FreshHarvestConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, DESCRIPTION.key)
-        self._entry = entry
 
     @property
     def available(self) -> bool:
@@ -70,9 +68,9 @@ class FreshHarvestSkip(FreshHarvestEntity, SwitchEntity):
                 order.delivery_date, dry_run=False
             )
         except FreshHarvestError as err:
-            self._fire("skip", False, str(order.delivery_date), str(err))
+            self.fire_action("skip", False, str(order.delivery_date), str(err))
             raise HomeAssistantError(f"could not skip: {err}") from err
-        self._fire("skip", True, str(order.delivery_date), result.detail)
+        self.fire_action("skip", True, str(order.delivery_date), result.detail)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -85,14 +83,8 @@ class FreshHarvestSkip(FreshHarvestEntity, SwitchEntity):
                 order.delivery_date, dry_run=False
             )
         except FreshHarvestError as err:
-            self._fire("restore", False, str(order.delivery_date), str(err))
+            self.fire_action("restore", False, str(order.delivery_date), str(err))
             raise HomeAssistantError(f"could not restore: {err}") from err
-        self._fire("restore", True, str(order.delivery_date), result.detail)
+        self.fire_action("restore", True, str(order.delivery_date), result.detail)
         await self.coordinator.async_request_refresh()
 
-    def _fire(self, action: str, ok: bool, target: str, detail: str) -> None:
-        self.hass.bus.async_fire(
-            EVENT_ACTION,
-            {"domain": DOMAIN, "entry_id": self._entry.entry_id, "action": action,
-             "success": ok, "target": target, "detail": detail},
-        )

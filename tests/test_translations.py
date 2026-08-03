@@ -91,3 +91,33 @@ def test_manifest_is_well_formed():
 def test_todo_entity_is_named(strings):
     """todo.py declares its name via _attr_translation_key, not a description."""
     assert attr_keys("todo.py") == set(strings["entity"]["todo"])
+
+
+def test_fire_action_call_sites_are_well_formed():
+    """Every fire_action call passes (action, ok, target, detail).
+
+    A refactor that moved this helper onto the base entity rewrote the call
+    sites mechanically and left one with three arguments — a TypeError that
+    only fires when a user presses the button, which no unit test reaches.
+    """
+    bad = []
+    for path in COMPONENT.glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and getattr(node.func, "attr", None) == "fire_action"
+                and len(node.args) != 4
+            ):
+                bad.append(f"{path.name}:{node.lineno} takes {len(node.args)}")
+    assert not bad, f"malformed fire_action calls: {bad}"
+
+
+def test_no_class_inherits_from_itself():
+    """`class X(X, Mixin)` is legal Python and a maintenance trap; it was here."""
+    for path in COMPONENT.glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                names = {getattr(b, "id", None) for b in node.bases}
+                assert node.name not in names, f"{path.name}: {node.name} inherits itself"
