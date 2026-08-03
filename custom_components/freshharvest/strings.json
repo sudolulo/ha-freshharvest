@@ -84,6 +84,11 @@
       "add_ons": {
         "name": "Add-ons"
       }
+    },
+    "select": {
+      "produce_box": {
+        "name": "Produce box"
+      }
     }
   }
 }

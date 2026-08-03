@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `todo.fresh_harvest_add_ons`; box contents stay read-only on
   `sensor.*_next_delivery_items`.
 
+- Produce box switching: `POST /s/submit/select-basket`, exposed as
+  `select.fresh_harvest_produce_box` with all ten boxes. Switching a box is not
+  adding an add-on — you change which box arrives, not what is inside it — so
+  it is a select, where add-ons are a to-do list.
+
 ### Known gaps
 
 - Entities are deliberately NOT exposed to the conversation agent yet.

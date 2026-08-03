@@ -18,6 +18,7 @@ PLATFORMS = {
     "binary_sensor": "binary_sensor.py",
     "switch": "switch.py",
     "button": "button.py",
+    "select": "select.py",
 }
 
 

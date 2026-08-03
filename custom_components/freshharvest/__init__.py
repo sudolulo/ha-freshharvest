@@ -13,6 +13,7 @@ from .coordinator import FreshHarvestCoordinator
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.TODO,
