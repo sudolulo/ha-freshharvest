@@ -79,6 +79,43 @@ Two invariants hold against the portal's own arithmetic, and tests assert both:
 - `open_order_free_delivery_remaining` reaching `0.00` always coincides with a
   `0.00` delivery fee
 
+## Upstream compatibility
+
+freshharvest.com has no API and no stability contract — this integration reads
+HTML and posts to form endpoints, so a redesign can change what a value *means*
+without changing its shape. [tools/compat.py](tools/compat.py) records every
+assumption and CI asserts them against the live site daily, refreshing this
+table and opening an issue on drift.
+
+<!-- COMPAT:START -->
+_Last checked 2026-08-03._
+
+| Area | Assumption | Status | Detail |
+| --- | --- | --- | --- |
+| Login | `/s/popup/login` serves the form | ✅ | 2273 bytes |
+| Login | hidden `LoginSecurity` is minted | ✅ | 154 chars |
+| Login | hidden `SubmitToken` is minted | ✅ | 174 chars |
+| Login | posts to `/s/submit/login` | ✅ | /s/submit/login |
+| Login | field `LoginEmail` present | ✅ |  |
+| Login | field `LoginPassword` present | ✅ |  |
+| Catalogue | Algolia credentials readable from site JS | ✅ | app id + search key found |
+| Catalogue | index name readable | ✅ | dev_FullTest |
+| Catalogue | index returns a plausible catalogue | ✅ | 946 records |
+| Catalogue | record field `ID` | ✅ | present |
+| Catalogue | record field `Name` | ✅ | present |
+| Catalogue | record field `Price` | ✅ | present |
+| Catalogue | record field `Measurement` | ✅ | present |
+| Catalogue | record field `Categories` | ✅ | present |
+| Endpoints | cart add/remove URL shape unchanged | ✅ | /p/Ajax/order-manage/ |
+| Endpoints | popup route is `/x/popup/{type}/{token}` | ✅ | found |
+<!-- COMPAT:END -->
+
+Only the unauthenticated surface is checked here. The authenticated contract —
+dashboard markup, cart add hashes, skip popups, subscribe forms — needs a real
+session, and the only way to give public CI one is to put a personal grocery
+account's password in repo secrets. That belongs in a job on a host that already
+has credential access, not here.
+
 ## How it works
 
 Fresh Harvest is not on Shopify, Farmigo, or Local Line — the page metadata

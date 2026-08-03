@@ -1,0 +1,106 @@
+name: Upstream compatibility
+
+# freshharvest.com is a moving target with no API and no stability contract. This
+# integration reads HTML and posts to form endpoints, so a redesign can change
+# what a value MEANS without changing its shape — a sensor quietly reporting last
+# week's total is worse than one that goes unavailable.
+#
+# tools/compat.py records what the integration assumes and asserts it against the
+# live site daily, refreshing the matrix in README.md and opening an issue when
+# something breaks.
+#
+# SCOPE: unauthenticated surface only. The authenticated contract (dashboard
+# markup, cart hashes, skip popups, subscribe forms) needs a real session, and
+# the only way to give public CI one is to park a personal grocery account's
+# password in repo secrets. Not worth it for a drift check — that half belongs in
+# a fleet job on a host that already holds credentials.
+
+on:
+  schedule:
+    - cron: "23 7 * * *"      # daily, off the hour
+  workflow_dispatch:
+  push:
+    paths:
+      # The manifest of assumptions changed — re-check now, not tomorrow.
+      - "tools/compat.py"
+      - ".github/workflows/compat.yml"
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  compat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Check assumptions against the live site
+        id: check
+        run: |
+          set +e
+          python tools/compat.py --markdown > matrix.md
+          echo "failures=$?" >> "$GITHUB_OUTPUT"
+          cat matrix.md
+
+      - name: Refresh the matrix in README
+        run: |
+          python - <<'PY'
+          import pathlib, re, datetime
+          matrix = pathlib.Path("matrix.md").read_text().strip()
+          stamp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
+          block = f"<!-- COMPAT:START -->\n_Last checked {stamp}._\n\n{matrix}\n<!-- COMPAT:END -->"
+          readme = pathlib.Path("README.md")
+          text = readme.read_text()
+          new = re.sub(r"<!-- COMPAT:START -->.*<!-- COMPAT:END -->", block, text, flags=re.S)
+          if new != text:
+              readme.write_text(new)
+              print("README matrix updated")
+          else:
+              print("no change")
+          PY
+
+      - name: Commit the refreshed matrix
+        run: |
+          if git diff --quiet README.md; then
+            echo "nothing to commit"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Refresh the upstream compatibility matrix"
+          # GitHub is a MIRROR of Gitea, never a source of truth, so this must not
+          # push. It opens a PR instead; merge it on the canonical forge.
+          BRANCH="compat/refresh-$(date -u +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          git push -f origin "$BRANCH"
+          gh pr list --head "$BRANCH" --state open --json number -q '.[0].number' | grep -q . \
+            || gh pr create --head "$BRANCH" --title "Refresh the upstream compatibility matrix" \
+                 --body "Automated: freshharvest.com assumption check. See the matrix in README."
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Open an issue when the site has drifted
+        if: steps.check.outputs.failures != '0'
+        run: |
+          TITLE="Upstream drift: freshharvest.com no longer matches our assumptions"
+          EXISTING=$(gh issue list --state open --search "$TITLE" --json number -q '.[0].number')
+          BODY=$'The daily compatibility check failed. The integration is likely reporting stale or wrong values.\n\n'"$(cat matrix.md)"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --label upstream
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fail the run on drift
+        if: steps.check.outputs.failures != '0'
+        run: |
+          echo "${{ steps.check.outputs.failures }} assumption(s) no longer hold"
+          exit 1

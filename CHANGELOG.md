@@ -5,6 +5,25 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `actions.py`: the write layer — skip a delivery, donate a box, add/remove cart
+  items, subscribe/unsubscribe with a frequency, and add a vacation hold over a
+  date range (distinct from skipping: three weeks away is one hold, not three
+  skips). Parsers for current subscriptions and scheduled holds.
+- `tools/compat.py` plus a daily `compat.yml` workflow: records every assumption
+  this integration makes about freshharvest.com and asserts it against the live
+  site, refreshing the matrix in README and opening an issue on drift.
+- `FreshHarvestClient.async_fetch`, restored as the shared authenticated-fetch
+  primitive that both the snapshot read and every write action build on.
+
+### Notes
+
+- Actions default to `dry_run=True` and report exactly what they would submit.
+  Nothing has been executed against a live account yet.
+
 ## [0.3.0] - 2026-08-03
 
 Prepared for public release as a HACS custom repository.

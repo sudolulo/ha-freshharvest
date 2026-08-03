@@ -362,20 +362,27 @@ class FreshHarvestClient:
         """
         return "sign out" in body.lower()
 
-    async def async_get_snapshot(self) -> AccountSnapshot:
-        """Fetch and parse the dashboard, re-authenticating once if needed."""
+    async def async_fetch(self, path: str) -> str:
+        """Fetch any portal page, re-authenticating once if the session lapsed.
+
+        The shared primitive for reads and for the token-scraping that every
+        write action in `actions.py` has to do first.
+        """
         if not self._authenticated:
             await self.async_login()
 
         try:
-            body = await self._get(DASHBOARD)
+            body = await self._get(path)
             if not self._signed_in(body):
                 self._authenticated = False
                 await self.async_login()
-                body = await self._get(DASHBOARD)
+                body = await self._get(path)
                 if not self._signed_in(body):
                     raise FreshHarvestAuthError("could not hold a signed-in session")
         except aiohttp.ClientError as err:
-            raise FreshHarvestError(f"dashboard request failed: {err}") from err
+            raise FreshHarvestError(f"request for {path} failed: {err}") from err
+        return body
 
-        return parse_dashboard(body)
+    async def async_get_snapshot(self) -> AccountSnapshot:
+        """Fetch and parse the dashboard."""
+        return parse_dashboard(await self.async_fetch(DASHBOARD))
