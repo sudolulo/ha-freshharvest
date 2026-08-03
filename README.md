@@ -1,5 +1,7 @@
 # ha-freshharvest
 
+[![Validate](https://github.com/sudolulo/ha-freshharvest/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/sudolulo/ha-freshharvest/actions) [![Upstream compatibility](https://github.com/sudolulo/ha-freshharvest/actions/workflows/compat.yml/badge.svg?branch=main)](https://github.com/sudolulo/ha-freshharvest/actions/workflows/compat.yml) [![HACS: custom](https://img.shields.io/badge/HACS-custom-41BDF5?logo=homeassistant&logoColor=white)](https://hacs.xyz/docs/faq/custom_repositories) [![Home Assistant 2025.2+](https://img.shields.io/badge/Home%20Assistant-2025.2%2B-41BDF5?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-%E2%9D%A4-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sudolulo) [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/sudolulo)
+
 Unofficial Home Assistant integration for [Fresh Harvest](https://freshharvest.com/),
 the Georgia local-produce delivery subscription.
 
@@ -134,8 +136,14 @@ _Last checked 2026-08-03._
 Only the unauthenticated surface is checked here. The authenticated contract —
 dashboard markup, cart add hashes, skip popups, subscribe forms — needs a real
 session, and the only way to give public CI one is to put a personal grocery
-account's password in repo secrets. That belongs in a job on a host that already
-has credential access, not here.
+account's password in repo secrets. That half runs on a host that already holds
+the credential.
+
+Worth knowing if you fork this: every markup break so far has been **silent**.
+Subscription rows moved and the integration reported `0` subscriptions; hold
+dates were not ISO and it reported `0` holds. A sensor reading zero is
+indistinguishable from an account with nothing in it, which is exactly why
+these are asserted rather than left to be noticed.
 
 ## How it works
 
@@ -151,14 +159,21 @@ Login is a two-step handshake:
    an empty `Redirect`, yielding an `fh_session_authenticated` cookie.
 
 The tokens are bound to the cookie issued by step 1, so both requests must
-share a cookie jar. Everything then comes from a single
-`GET /p/dashboard/details`, which carries the delivery day, next arrival date,
-both upcoming carts, their contents, and their totals. One request per refresh,
-every six hours.
+share a cookie jar.
+
+A refresh is three GETs: `/p/dashboard/details` for the delivery day, next
+arrival, both upcoming carts and their totals; `/p/dashboard/manage-subscriptions`
+for standing orders; and `/p/dashboard/pause-deliveries` for vacation holds.
+Three requests every six hours.
+
+Write actions cost more, because nothing can be constructed offline — every
+mutating endpoint is guarded by rotating per-render tokens, so each action
+fetches the page that offers it, reads fresh tokens, checks they describe the
+intended target, and only then submits.
 
 ## Markup notes
 
-Three traps, none guessable from the outside:
+Six traps, none guessable from the outside:
 
 - **HTTP status means nothing.** Every `/p/*` path returns 200, including
   invented ones. Signed-in state is detected by the presence of a Sign Out
@@ -170,6 +185,16 @@ Three traps, none guessable from the outside:
 - **The free-delivery bar only renders on carts below the threshold.** An order
   that already qualifies has no bar at all, so the threshold is read once from
   whichever cart shows it and applied to every order.
+- **Popups and AJAX replies are fragments, not pages.** They carry no
+  navigation, so a "am I still signed in?" check based on a Sign Out control
+  reads every one of them as logged out. Skip could not run at all until these
+  were fetched with that check disabled.
+- **`openPopup` is written both `("x","y")` and `("x", "y")`.** A regex
+  requiring no space silently matches nothing on the pages that use the other
+  form — which is every basket page.
+- **A `<select>`'s `id` is not its POST field.** The subscribe form's frequency
+  control is `id='FrequencyID'` but `name='popup-toggle'`. Posting
+  `FrequencyID` is accepted and does nothing.
 
 ## Dashboard
 
