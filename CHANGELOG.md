@@ -5,6 +5,36 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-03
+
+Prepared for public release as a HACS custom repository.
+
+### Added
+
+- Every cost component is now its own entity rather than an attribute:
+  subtotal, box price, add-ons, tax, and delivery fee for the next delivery,
+  plus a total and free-delivery-remaining for the open order.
+- `binary_sensor.fresh_harvest_order_open`, which turns off when the cutoff
+  passes — the last moment to change the box.
+- `sensor.fresh_harvest_delivery_day`.
+- Parsing for the driver tip, potential Bounty savings, and the free-delivery
+  threshold, with the threshold carried across orders because the progress bar
+  only renders on carts below it.
+- `LICENSE` (MIT), `hacs.json`, and a CI workflow running hassfest, the HACS
+  action, and the test suite.
+- `tests/test_translations.py`, which cross-checks every entity's
+  `translation_key` against both translation files and fails on an orphan or a
+  missing name.
+
+### Changed
+
+- Entities share a `FreshHarvestEntity` base and declare a `scope`
+  (`account`, `next_order`, `open_order`), so a description states only the
+  field it reads instead of repeating None handling.
+- `manifest.json` documentation and issue-tracker URLs now point at GitHub;
+  they previously pointed at a private forge that no installer could reach.
+- Fixture cart identifiers replaced with placeholders.
+
 ## [0.2.0] - 2026-08-03
 
 ### Added

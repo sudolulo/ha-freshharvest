@@ -1,11 +1,11 @@
 # Fresh Harvest dashboard view.
 #
-# This is the tab shipped alongside the integration: three sections covering the
-# next delivery, what is in the box, and the order that can still be changed.
+# Four sections: the next delivery, its cost broken down per line, what is in
+# the box, and the order that can still be changed.
 #
 # To use it, open your dashboard, choose "Edit dashboard" -> "Raw configuration
-# editor", and paste this under `views:`. It only needs the six sensors the
-# integration creates.
+# editor", and paste this under `views:`. It needs the entities this
+# integration creates and nothing else — no custom cards.
 
 type: sections
 max_columns: 4
@@ -23,8 +23,7 @@ sections:
       {%- set d = states('sensor.fresh_harvest_next_delivery') -%}
       {%- set box = state_attr('sensor.fresh_harvest_next_delivery_items', 'box') -%}
       {%- if d not in ['unknown', 'unavailable', 'none'] -%}
-      {%- set days = (d | as_datetime).date() - now().date() -%}
-      {%- set n = days.days -%}
+      {%- set n = ((d | as_datetime).date() - now().date()).days -%}
       ## {% if n < 0 %}Delivered{% elif n == 0 %}Arriving today{% elif n == 1 %}Arriving tomorrow{% else %}Arriving in {{ n }} days{% endif %}
       {{ (d | as_datetime).strftime('%A, %B %-d') }}{% if box %} · {{ box }}{% endif %}
       {%- else -%}
@@ -41,15 +40,49 @@ sections:
     icon: mdi:cash-multiple
     color: teal
   - type: tile
+    entity: sensor.fresh_harvest_next_delivery_items
+    name: Items
+    icon: mdi:basket-check
+    color: light-green
+- type: grid
+  cards:
+  - type: heading
+    heading: Cost Breakdown
+    heading_style: title
+    icon: mdi:receipt-text-outline
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery_box_price
+    name: Produce box
+    icon: mdi:package-variant
+    color: green
+  - type: tile
     entity: sensor.fresh_harvest_next_delivery_add_ons
     name: Add-ons
     icon: mdi:cart-plus
     color: purple
   - type: tile
-    entity: sensor.fresh_harvest_next_delivery_items
-    name: Items
-    icon: mdi:basket-check
-    color: light-green
+    entity: sensor.fresh_harvest_next_delivery_subtotal
+    name: Subtotal
+    icon: mdi:calculator
+    color: grey
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery_tax
+    name: Tax
+    icon: mdi:bank
+    color: grey
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery_fee
+    name: Delivery fee
+    icon: mdi:truck-outline
+    color: grey
+  - type: markdown
+    content: |-
+      {%- set fee = states('sensor.fresh_harvest_next_delivery_fee') | float(-1) -%}
+      {%- if fee == 0 -%}
+      **Free delivery** on the order arriving next.
+      {%- elif fee > 0 -%}
+      Delivery fee of **${{ '%.2f' | format(fee) }}** applies to this order.
+      {%- endif -%}
 - type: grid
   cards:
   - type: heading
@@ -60,10 +93,10 @@ sections:
     content: |-
       {%- set produce = state_attr('sensor.fresh_harvest_next_delivery_items', 'produce') or [] -%}
       {%- set addons = state_attr('sensor.fresh_harvest_next_delivery_items', 'add_ons') or [] -%}
-      {%- set addons_total = state_attr('sensor.fresh_harvest_next_delivery_items', 'add_ons_total') -%}
-      {%- set box_price = state_attr('sensor.fresh_harvest_next_delivery_items', 'box_price') -%}
+      {%- set box_price = states('sensor.fresh_harvest_next_delivery_box_price') | float(0) -%}
+      {%- set addons_total = states('sensor.fresh_harvest_next_delivery_add_ons') | float(0) -%}
       {%- if produce -%}
-      **In the box**{% if box_price %} · ${{ '%.2f' | format(box_price) }}{% endif %}
+      **In the box** · ${{ '%.2f' | format(box_price) }}
       {% for i in produce %}
       - {{ i }}
       {%- endfor %}
@@ -71,7 +104,7 @@ sections:
       _Box contents not assigned yet._
       {%- endif %}
       {% if addons %}
-      **Add-ons**{% if addons_total %} · ${{ '%.2f' | format(addons_total) }}{% endif %}
+      **Add-ons** · ${{ '%.2f' | format(addons_total) }}
       {% for a in addons %}
       - {{ a }}
       {%- endfor %}
@@ -83,6 +116,11 @@ sections:
     heading_style: title
     icon: mdi:cart-arrow-right
   - type: tile
+    entity: binary_sensor.fresh_harvest_order_open
+    name: Can still change
+    icon: mdi:pencil-outline
+    color: amber
+  - type: tile
     entity: sensor.fresh_harvest_open_order_delivery
     name: Delivery
     icon: mdi:calendar-arrow-right
@@ -92,6 +130,21 @@ sections:
     name: Shopping window
     icon: mdi:clock-alert-outline
     color: orange
+  - type: tile
+    entity: sensor.fresh_harvest_open_order_total
+    name: Running total
+    icon: mdi:cash
+    color: teal
+  - type: markdown
+    content: |-
+      {%- set left = states('sensor.fresh_harvest_open_order_free_delivery_remaining') | float(-1) -%}
+      {%- set d = states('sensor.fresh_harvest_open_order_delivery') -%}
+      {%- set when = (d | as_datetime).strftime('%b %-d') if d not in ['unknown', 'unavailable', 'none'] else 'this' -%}
+      {%- if left == 0 -%}
+      The **{{ when }}** order already qualifies for free delivery.
+      {%- elif left > 0 -%}
+      The **{{ when }}** order needs **${{ '%.2f' | format(left) }} more** for free delivery.
+      {%- endif -%}
   - type: markdown
     content: |-
       Once an order passes its cutoff it locks for packing, and the following week's cart opens.

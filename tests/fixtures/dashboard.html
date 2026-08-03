@@ -6,34 +6,43 @@
 <html>
 <body>
   <div class='nav-main-cart'>
-    <div class='cart-selector-options-wrapper' data-cart-select='2772590'>
-      <div data-cart-select='2772590'>Tue 8/4</div>
+    <div class='cart-selector-options-wrapper' data-cart-select='1000001'>
+      <div data-cart-select='1000001'>Tue 8/4</div>
     </div>
-    <div class='cart-selector-options-wrapper' data-cart-select='2778336'>
-      <div data-cart-select='2778336'>Tue 8/11</div>
+    <div class='cart-selector-options-wrapper' data-cart-select='1000002'>
+      <div data-cart-select='1000002'>Tue 8/11</div>
     </div>
   </div>
 
   <!-- Open cart: still customizable, contents not yet assigned. -->
-  <div class='cart-contents' data-cart-select='2778336'>
+  <div class='cart-contents' data-cart-select='1000002'>
     <div class='cart-basket-columns'>
       <h6>Georgia Grown Small Box</h6>
       <div class='item-total'>$33.00</div>
       <div class='cart-customize-wrapper'><div>Shop tomorrow</div></div>
     </div>
   </div>
-  <div id='OrderTotals-2778336'>
+  <!-- The free-delivery bar is only rendered on carts BELOW the threshold, which
+       is why the threshold is read once and applied to every order. -->
+  <div id='DeliveryProgressBar-1000002' class='basket-progress'>
+    <div class='progress-message'>You're so close! $37.00 away from free delivery!</div>
+    <div class='progress'>
+      <progress id='DeliveryProgress-1000002' class='progress-free-delivery' value='33' max='70.00'></progress>
+    </div>
+  </div>
+  <div id='OrderTotals-1000002'>
     <div class='cart-summary'>
       <span class='summary-item label'>Subtotal</span><span class='summary-item value'>$33.00</span>
       <span class='summary-item label'>Driver Tip</span><span class='summary-item value'>Add Tip</span>
       <span class='summary-item label'>Tax</span><span class='summary-item value'>$0.99</span>
       <span class='summary-item label'>Delivery</span><span class='summary-item value'>$5.99</span>
       <span class='summary-item label demi-bold total'>Order Total <span class='order-total-see-details'>See Details</span></span><span class='summary-item value'>$39.98</span>
+      <span class='summary-item label'>Potential Bounty Savings</span><span class='summary-item value'>$5.99</span>
     </div>
   </div>
 
   <!-- Locked cart: past its cutoff, arriving next, contents final. -->
-  <div class='cart-contents cart-contents-skipped' data-cart-select='2772590'>
+  <div class='cart-contents cart-contents-skipped' data-cart-select='1000001'>
     <div class='cart-basket-columns'>
       <h6>Georgia Grown Small Box</h6>
       <div class='item-total'>$33.00</div>
@@ -55,7 +64,7 @@
         </div>
       </div>
     </div>
-    <div id='DODRow-3' class='cart-item qv-button shop-item-cursor' data-qvid='8961'>
+    <div id='DODRow-3' class='cart-item qv-button shop-item-cursor' data-qvid='5001'>
       <img class='cart-item-img' src='https://cdn.freshharvest.com/x.jpg' alt='Black Mission Figs' />
       <div class='item-details'>
         <span class='item-name'><div>Black Mission Figs</div></span>
@@ -64,14 +73,14 @@
         <div class='item-order-wrapper'>
           <div class='item-order item-order-disabled'>
             <div class='btn-round item-order-remove qv-ignore'></div>
-            <span class='item-order-quantity qv-ignore' data-item-quantity='8961'>1</span>
+            <span class='item-order-quantity qv-ignore' data-item-quantity='5001'>1</span>
             <div class='btn-round item-order-add qv-ignore'></div>
           </div>
         </div>
       </div>
     </div>
     <!-- Multi-quantity add-on: item-total is the EXTENDED price, 4 x $4.49. -->
-    <div id='DODRow-4' class='cart-item qv-button shop-item-cursor' data-qvid='9012'>
+    <div id='DODRow-4' class='cart-item qv-button shop-item-cursor' data-qvid='5002'>
       <img class='cart-item-img' src='https://cdn.freshharvest.com/y.jpg' alt='Complete Recovery Smoothie' />
       <div class='item-details'>
         <span class='item-name'><div>Complete Recovery Smoothie</div></span>
@@ -80,13 +89,13 @@
         <div class='item-order-wrapper'>
           <div class='item-order item-order-disabled'>
             <div class='btn-round item-order-remove qv-ignore'></div>
-            <span class='item-order-quantity qv-ignore' data-item-quantity='9012'>4</span>
+            <span class='item-order-quantity qv-ignore' data-item-quantity='5002'>4</span>
             <div class='btn-round item-order-add qv-ignore'></div>
           </div>
         </div>
       </div>
     </div>
-    <div id='DODRow-5' class='cart-item qv-button shop-item-cursor' data-qvid='9105'>
+    <div id='DODRow-5' class='cart-item qv-button shop-item-cursor' data-qvid='5003'>
       <img class='cart-item-img' src='https://cdn.freshharvest.com/z.jpg' alt='Organic Fruit Punch Juice Boxes' />
       <div class='item-details'>
         <span class='item-name'><div>Organic Fruit Punch Juice Boxes</div></span>
@@ -95,21 +104,23 @@
         <div class='item-order-wrapper'>
           <div class='item-order item-order-disabled'>
             <div class='btn-round item-order-remove qv-ignore'></div>
-            <span class='item-order-quantity qv-ignore' data-item-quantity='9105'>2</span>
+            <span class='item-order-quantity qv-ignore' data-item-quantity='5003'>2</span>
             <div class='btn-round item-order-add qv-ignore'></div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div id='OrderTotals-2772590'>
+  <div id='OrderTotals-1000001'>
     <div class='cart-summary'>
       <!-- Self-consistent: box 33.00 + add-ons 39.93 = 72.93 subtotal, which is
            over the $70 free-delivery threshold, hence the $0.00 fee. -->
       <span class='summary-item label'>Subtotal</span><span class='summary-item value'>$72.93</span>
+      <span class='summary-item label'>Driver Tip</span><span class='summary-item value'>$4.00</span>
       <span class='summary-item label'>Tax</span><span class='summary-item value'>$2.19</span>
       <span class='summary-item label'>Delivery</span><span class='summary-item value'>$0.00</span>
-      <span class='summary-item label demi-bold total'>Order Total <span>See Details</span></span><span class='summary-item value'>$75.12</span>
+      <span class='summary-item label demi-bold total'>Order Total <span>See Details</span></span><span class='summary-item value'>$79.12</span>
+      <span class='summary-item label'>Potential Bounty Savings</span><span class='summary-item value'>$5.69</span>
     </div>
   </div>
 

@@ -22,11 +22,26 @@
       "next_delivery": {
         "name": "Next delivery"
       },
+      "delivery_day": {
+        "name": "Delivery day"
+      },
       "next_delivery_total": {
         "name": "Next delivery total"
       },
-      "next_delivery_addons_total": {
+      "next_delivery_subtotal": {
+        "name": "Next delivery subtotal"
+      },
+      "next_delivery_box_price": {
+        "name": "Next delivery box price"
+      },
+      "next_delivery_add_ons": {
         "name": "Next delivery add-ons"
+      },
+      "next_delivery_tax": {
+        "name": "Next delivery tax"
+      },
+      "next_delivery_delivery_fee": {
+        "name": "Next delivery fee"
       },
       "next_delivery_items": {
         "name": "Next delivery items"
@@ -34,8 +49,19 @@
       "open_order_delivery": {
         "name": "Open order delivery"
       },
+      "open_order_total": {
+        "name": "Open order total"
+      },
+      "open_order_free_delivery_remaining": {
+        "name": "Open order free delivery remaining"
+      },
       "shop_window": {
         "name": "Shopping window"
+      }
+    },
+    "binary_sensor": {
+      "order_open": {
+        "name": "Order open"
       }
     }
   }

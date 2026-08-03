@@ -96,7 +96,12 @@ class DeliveryOrder:
     subtotal: float | None = None
     tax: float | None = None
     delivery_fee: float | None = None
+    driver_tip: float | None = None
     total: float | None = None
+    # What a Bounty membership would knock off this order. Marketing, not a charge.
+    bounty_savings: float | None = None
+    # How much more this order needs to qualify for free delivery, 0.0 once it does.
+    free_delivery_remaining: float | None = None
     # Non-empty only while the order can still be changed, e.g. "Shop tomorrow"
     # or "Shop thru Sunday 8/9". Empty once the order is locked for packing.
     shop_window: str | None = None
@@ -126,6 +131,9 @@ class AccountSnapshot:
 
     next_delivery: date | None = None
     delivery_day: str | None = None
+    # Account-wide spend needed for free delivery. Only rendered on carts that
+    # have not reached it, so it is read once and applied to every order.
+    free_delivery_threshold: float | None = None
     orders: list[DeliveryOrder] = field(default_factory=list)
 
     @property
@@ -262,8 +270,29 @@ def parse_dashboard(html: str) -> AccountSnapshot:
                     order.tax = amount
                 elif key.startswith("delivery"):
                     order.delivery_fee = amount
+                elif key.startswith("driver tip"):
+                    # Reads "Add Tip" until one is set, which is not an amount.
+                    order.driver_tip = amount
+                elif "bounty savings" in key:
+                    order.bounty_savings = amount
+
+        progress = soup.select_one(f"#DeliveryProgressBar-{delivery_id} progress")
+        if progress is not None and snapshot.free_delivery_threshold is None:
+            try:
+                snapshot.free_delivery_threshold = float(progress.get("max"))
+            except (TypeError, ValueError):
+                _LOGGER.debug("unparsable free-delivery threshold on %s", delivery_id)
 
         snapshot.orders.append(order)
+
+    # Applied after the loop: the threshold is only rendered on carts that have
+    # not met it, so an order that already qualifies would otherwise miss it.
+    if snapshot.free_delivery_threshold is not None:
+        for order in snapshot.orders:
+            if order.subtotal is not None:
+                order.free_delivery_remaining = round(
+                    max(0.0, snapshot.free_delivery_threshold - order.subtotal), 2
+                )
 
     if not snapshot.orders and snapshot.next_delivery is None:
         raise FreshHarvestError("dashboard markup not recognised")

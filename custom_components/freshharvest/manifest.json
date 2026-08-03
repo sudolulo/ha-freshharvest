@@ -1,16 +1,12 @@
 {
   "domain": "freshharvest",
   "name": "Fresh Harvest",
-  "codeowners": [
-    "@flan"
-  ],
+  "codeowners": ["@sudolulo"],
   "config_flow": true,
-  "documentation": "https://git.onetick.ninja/flan/ha-freshharvest",
+  "documentation": "https://github.com/sudolulo/ha-freshharvest",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://git.onetick.ninja/flan/ha-freshharvest/issues",
-  "requirements": [
-    "beautifulsoup4>=4.12"
-  ],
-  "version": "0.2.0"
+  "issue_tracker": "https://github.com/sudolulo/ha-freshharvest/issues",
+  "requirements": ["beautifulsoup4>=4.12"],
+  "version": "0.3.0"
 }

@@ -62,7 +62,7 @@ def test_next_order_is_the_locked_one(snapshot):
     class `cart-contents-skipped`, which does not mean the user skipped it.
     """
     order = snapshot.next_order
-    assert order.delivery_id == "2772590"
+    assert order.delivery_id == "1000001"
     assert order.delivery_date == date(2026, 8, 4)
     assert order.is_open is False
 
@@ -71,7 +71,9 @@ def test_next_order_totals_and_contents(snapshot):
     order = snapshot.next_order
     assert order.box_name == "Georgia Grown Small Box"
     assert (order.subtotal, order.tax, order.delivery_fee) == (72.93, 2.19, 0.0)
-    assert order.total == 75.12
+    assert order.driver_tip == 4.00
+    assert order.bounty_savings == 5.69
+    assert order.total == 79.12
     assert [(i.quantity, i.name, i.unit) for i in order.items] == [
         (1, "Bolero Carrots", ".5 lb"),
         (2, "Georgia Peaches", "6 count"),
@@ -98,11 +100,31 @@ def test_addons_total_is_zero_when_nothing_is_added(snapshot):
 
 def test_open_order(snapshot):
     order = snapshot.open_order
-    assert order.delivery_id == "2778336"
+    assert order.delivery_id == "1000002"
     assert order.delivery_date == date(2026, 8, 11)
     assert order.is_open is True
     assert order.shop_window == "Shop tomorrow"
     assert order.total == 39.98
+
+
+def test_free_delivery_threshold_applies_to_every_order(snapshot):
+    """The bar renders only on carts below the threshold, so it must carry over."""
+    assert snapshot.free_delivery_threshold == 70.0
+    # This cart has the bar: $70.00 - $33.00 matches the portal's own message.
+    assert snapshot.open_order.free_delivery_remaining == 37.0
+    # This one does not, and must still resolve rather than staying unknown.
+    assert snapshot.next_order.free_delivery_remaining == 0.0
+
+
+def test_free_delivery_remaining_agrees_with_the_fee_charged(snapshot):
+    """Nothing left to spend must mean nothing was charged for delivery."""
+    for order in snapshot.orders:
+        assert (order.free_delivery_remaining == 0.0) == (order.delivery_fee == 0.0)
+
+
+def test_unset_driver_tip_is_none_not_zero(snapshot):
+    """An untipped order reads 'Add Tip'; that is unknown, not a $0.00 tip."""
+    assert snapshot.open_order.driver_tip is None
 
 
 def test_driver_tip_placeholder_is_not_money(snapshot):
