@@ -5,6 +5,30 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-03
+
+Control, not just reporting: the box can now be managed from Home Assistant.
+
+### Added
+
+- Skip and restore, donate, add/remove add-ons, subscribe/unsubscribe,
+  vacation holds, and produce-box switching — every reversible one verified by
+  a live round trip that returned the account to its prior state.
+- Entities for each: a produce-box select, a skip switch, a donate button, an
+  add-ons to-do list the built-in conversation agent can drive, and sensors for
+  subscriptions and vacation holds.
+- A `freshharvest_action` event after every write, carrying action/success/
+  target/detail so automations can notify on the outcome.
+- A four-section dashboard view with the controls in place, exported to
+  `examples/dashboard-view.yaml`.
+
+### Notes
+
+- Donating is the one action never executed: it cannot be undone, so it will be
+  proven the first time there is a box actually worth giving away.
+- Entities are not exposed to the conversation agent by default; that is the
+  operator's call.
+
 ## [Unreleased]
 
 ### Added

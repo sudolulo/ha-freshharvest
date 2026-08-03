@@ -32,6 +32,26 @@ The next delivery and the *open* order are usually two different deliveries.
 Once an order passes its cutoff it locks for packing, and the cart you can still
 edit is the following week's — so both are exposed separately.
 
+Three things arrive in a delivery and only one is a list you edit:
+
+| | What it is | Entity |
+| --- | --- | --- |
+| **Produce box** | Chosen, not assembled. Ten options. | `select.fresh_harvest_produce_box` |
+| **Box contents** | Fresh Harvest fills it; read-only. | `produce` attr of `..._next_delivery_items` |
+| **Add-ons** | Yours to add and remove. | `todo.fresh_harvest_add_ons` |
+
+### Controls
+
+| Entity | Notes |
+| --- | --- |
+| `select.fresh_harvest_produce_box` | Switches the **next delivery only**, not the standing order |
+| `switch.fresh_harvest_skip_next_order` | Skip, and turn back off to restore |
+| `button.fresh_harvest_donate_next_order` | Donates the box. **Not reversible** |
+| `todo.fresh_harvest_add_ons` | Add/remove items; names resolve via the site's search index |
+
+Home Assistant's built-in conversation agent can drive the to-do list through
+`HassListAddItem`, so no bespoke voice work is needed.
+
 ### The order arriving next
 
 | Entity | Example |
@@ -45,11 +65,6 @@ edit is the following week's — so both are exposed separately.
 | `sensor.fresh_harvest_next_delivery_fee` | `5.99` |
 | `sensor.fresh_harvest_next_delivery_items` | `11` |
 
-`next_delivery_items` carries the contents as attributes: `produce`, `add_ons`
-(each with quantity, unit and extended price), `produce_count`, `add_ons_count`
-and `box`. The totals sensor carries `driver_tip` and `bounty_savings`, which
-are optional or promotional rather than charges.
-
 ### The order you can still change
 
 | Entity | Example |
@@ -61,15 +76,21 @@ are optional or promotional rather than charges.
 | `sensor.fresh_harvest_shopping_window` | `Shop tomorrow` |
 
 `binary_sensor.fresh_harvest_order_open` is the one to automate on: it turns off
-when the cutoff passes, which is the last moment to add anything to the box.
-`shopping_window` reads `closed` when nothing is changeable — distinct from
-unknown.
+when the cutoff passes, the last moment to change the box.
 
 ### The account
 
 | Entity | Example |
 | --- | --- |
 | `sensor.fresh_harvest_delivery_day` | `Tuesdays` |
+| `sensor.fresh_harvest_subscriptions` | `1`, with each standing order in attributes |
+| `sensor.fresh_harvest_vacation_holds` | `0`, with ranges in attributes |
+
+## Events
+
+Every write action fires `freshharvest_action` with `action`, `success`,
+`target` and `detail`, so an automation can notify on an add succeeding or a
+skip failing.
 
 ## Consistency guarantees
 

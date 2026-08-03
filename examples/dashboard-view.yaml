@@ -1,11 +1,16 @@
 # Fresh Harvest dashboard view.
 #
-# Four sections: the next delivery, its cost broken down per line, what is in
-# the box, and the order that can still be changed.
+# Four sections: the next delivery, what is in the box, the controls, and the
+# add-ons you can still edit.
+#
+# The split matters. The produce box is CHOSEN (a select), its contents are
+# read-only, and only add-ons are add/removable (a to-do list). The to-do list
+# edits the OPEN order while the totals describe the ARRIVING one, which is why
+# each is labelled with its date -- unlabelled, they read as a contradiction.
 #
 # To use it, open your dashboard, choose "Edit dashboard" -> "Raw configuration
-# editor", and paste this under `views:`. It needs the entities this
-# integration creates and nothing else — no custom cards.
+# editor", and paste this under `views:`. It needs only the entities this
+# integration creates -- no custom cards.
 
 type: sections
 max_columns: 4
@@ -44,37 +49,6 @@ sections:
     name: Items
     icon: mdi:basket-check
     color: light-green
-- type: grid
-  cards:
-  - type: heading
-    heading: Cost Breakdown
-    heading_style: title
-    icon: mdi:receipt-text-outline
-  - type: tile
-    entity: sensor.fresh_harvest_next_delivery_box_price
-    name: Produce box
-    icon: mdi:package-variant
-    color: green
-  - type: tile
-    entity: sensor.fresh_harvest_next_delivery_add_ons
-    name: Add-ons
-    icon: mdi:cart-plus
-    color: purple
-  - type: tile
-    entity: sensor.fresh_harvest_next_delivery_subtotal
-    name: Subtotal
-    icon: mdi:calculator
-    color: grey
-  - type: tile
-    entity: sensor.fresh_harvest_next_delivery_tax
-    name: Tax
-    icon: mdi:bank
-    color: grey
-  - type: tile
-    entity: sensor.fresh_harvest_next_delivery_fee
-    name: Delivery fee
-    icon: mdi:truck-outline
-    color: grey
   - type: markdown
     content: |-
       {%- set fee = states('sensor.fresh_harvest_next_delivery_fee') | float(-1) -%}
@@ -112,24 +86,31 @@ sections:
 - type: grid
   cards:
   - type: heading
-    heading: Still Open
+    heading: Manage
     heading_style: title
-    icon: mdi:cart-arrow-right
+    icon: mdi:tune-variant
   - type: tile
-    entity: binary_sensor.fresh_harvest_order_open
-    name: Can still change
-    icon: mdi:pencil-outline
-    color: amber
+    entity: select.fresh_harvest_produce_box
+    name: Produce box
+    icon: mdi:package-variant-closed
+    color: green
+    features:
+    - type: select-options
   - type: tile
-    entity: sensor.fresh_harvest_open_order_delivery
-    name: Delivery
-    icon: mdi:calendar-arrow-right
+    entity: switch.fresh_harvest_skip_next_order
+    name: Skip next order
+    icon: mdi:calendar-remove
     color: amber
   - type: tile
     entity: sensor.fresh_harvest_shopping_window
     name: Shopping window
     icon: mdi:clock-alert-outline
     color: orange
+  - type: tile
+    entity: sensor.fresh_harvest_open_order_delivery
+    name: Open order
+    icon: mdi:calendar-arrow-right
+    color: amber
   - type: tile
     entity: sensor.fresh_harvest_open_order_total
     name: Running total
@@ -145,8 +126,57 @@ sections:
       {%- elif left > 0 -%}
       The **{{ when }}** order needs **${{ '%.2f' | format(left) }} more** for free delivery.
       {%- endif -%}
+  - type: tile
+    entity: button.fresh_harvest_donate_next_order
+    name: Donate this box
+    icon: mdi:hand-heart
+    color: pink
+    hide_state: true
   - type: markdown
     content: |-
-      Once an order passes its cutoff it locks for packing, and the following week's cart opens.
+      Donating gives the whole box away and **cannot be undone**.
 
-      [Change this order →](https://freshharvest.com/p/dashboard/manage-orders)
+      [Manage on freshharvest.com →](https://freshharvest.com/p/dashboard/manage-orders)
+- type: grid
+  cards:
+  - type: heading
+    heading: Add-ons & Standing Orders
+    heading_style: title
+    icon: mdi:cart-plus
+  - type: markdown
+    content: |-
+      {%- set d = states('sensor.fresh_harvest_open_order_delivery') -%}
+      {%- if d not in ['unknown', 'unavailable', 'none'] -%}
+      Editing the **{{ (d | as_datetime).strftime('%b %-d') }}** order — the one still open.
+      {%- else -%}
+      No order is open for changes right now.
+      {%- endif -%}
+  - type: todo-list
+    entity: todo.fresh_harvest_add_ons
+    display_order: alpha_asc
+  - type: tile
+    entity: sensor.fresh_harvest_next_delivery_add_ons
+    name: Arriving box add-ons
+    icon: mdi:cart-plus
+    color: purple
+  - type: tile
+    entity: sensor.fresh_harvest_subscriptions
+    name: Subscriptions
+    icon: mdi:autorenew
+    color: cyan
+  - type: markdown
+    content: |-
+      {%- set items = state_attr('sensor.fresh_harvest_subscriptions', 'items') or [] -%}
+      {%- if items -%}
+      **Repeating every week**
+      {% for i in items %}
+      - {{ i }}
+      {%- endfor %}
+      {%- else -%}
+      _No standing orders beyond the box._
+      {%- endif -%}
+  - type: tile
+    entity: sensor.fresh_harvest_vacation_holds
+    name: Vacation holds
+    icon: mdi:airplane
+    color: blue
