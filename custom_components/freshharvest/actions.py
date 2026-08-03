@@ -112,25 +112,39 @@ def _find_form(soup: BeautifulSoup, action: str):
 
 
 def parse_subscriptions(html: str) -> list[Subscription]:
-    """Read /p/dashboard/manage-subscriptions."""
+    """Read /p/dashboard/manage-subscriptions.
+
+    Cells are picked by their semantic class rather than column position:
+    `.account-item-multi-fields` is the HEADING row, and matching on it
+    silently yields zero subscriptions on an account that has some.
+    """
     soup = BeautifulSoup(html, "html.parser")
     account = soup.select_one(".account")
     if account is None:
         return []
+
+    def cell(row, *classes) -> str | None:
+        for cls in classes:
+            found = row.select_one(f".account-item-text.{cls}")
+            if found is not None:
+                text = found.get_text(" ", strip=True)
+                if text:
+                    return text
+        return None
+
     subs: list[Subscription] = []
-    for row in account.select(".account-item-multi-fields"):
-        cells = [c.get_text(" ", strip=True) for c in row.select(".account-item-text")]
-        cells = [c for c in cells if c]
-        if len(cells) < 2:
+    for row in account.select(".account-item-container"):
+        name = cell(row, "account-item-description")
+        if not name:
             continue
-        qty = cells[0]
+        qty = cell(row, "account-item-history-qty")
         subs.append(
             Subscription(
-                name=cells[1],
-                quantity=int(qty) if qty.isdigit() else None,
-                arriving=cells[2] if len(cells) > 2 else None,
-                partner=cells[3] if len(cells) > 3 else None,
-                frequency=cells[4] if len(cells) > 4 else None,
+                name=name,
+                quantity=int(qty) if (qty or "").isdigit() else None,
+                arriving=cell(row, "account-item-history"),
+                partner=cell(row, "account-item-history-vendor"),
+                frequency=cell(row, "center"),
             )
         )
     return subs

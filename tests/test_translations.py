@@ -13,7 +13,12 @@ from pathlib import Path
 import pytest
 
 COMPONENT = Path(__file__).parent.parent / "custom_components" / "freshharvest"
-PLATFORMS = {"sensor": "sensor.py", "binary_sensor": "binary_sensor.py"}
+PLATFORMS = {
+    "sensor": "sensor.py",
+    "binary_sensor": "binary_sensor.py",
+    "switch": "switch.py",
+    "button": "button.py",
+}
 
 
 def declared_keys(filename: str) -> set[str]:
@@ -26,6 +31,22 @@ def declared_keys(filename: str) -> set[str]:
         and node.arg == "translation_key"
         and isinstance(node.value, ast.Constant)
         and isinstance(node.value.value, str)
+    }
+
+
+def attr_keys(filename: str) -> set[str]:
+    """Collect `_attr_translation_key = "..."` assignments (entities without a
+    description object declare their name this way)."""
+    tree = ast.parse((COMPONENT / filename).read_text(encoding="utf-8"))
+    return {
+        node.value.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and any(
+            getattr(t, "id", getattr(t, "attr", None)) == "_attr_translation_key"
+            for t in node.targets
+        )
+        and isinstance(node.value, ast.Constant)
     }
 
 
@@ -64,3 +85,8 @@ def test_manifest_is_well_formed():
         assert manifest[key].startswith("https://github.com/"), (
             f"{key} must be a public URL, got {manifest[key]}"
         )
+
+
+def test_todo_entity_is_named(strings):
+    """todo.py declares its name via _attr_translation_key, not a description."""
+    assert attr_keys("todo.py") == set(strings["entity"]["todo"])

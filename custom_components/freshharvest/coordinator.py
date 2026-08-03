@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .actions import FreshHarvestActions
 from .api import (
     AccountSnapshot,
     FreshHarvestAuthError,
@@ -34,10 +35,15 @@ class FreshHarvestCoordinator(DataUpdateCoordinator[AccountSnapshot]):
             config_entry=entry,
         )
         self.client = client
+        self.actions = FreshHarvestActions(client)
 
     async def _async_update_data(self) -> AccountSnapshot:
         try:
-            return await self.client.async_get_snapshot()
+            snapshot = await self.client.async_get_snapshot()
+            # Two extra pages per refresh, so three requests every six hours.
+            snapshot.subscriptions = await self.actions.async_list_subscriptions()
+            snapshot.vacation_holds = await self.actions.async_list_vacation_holds()
+            return snapshot
         except FreshHarvestAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except FreshHarvestError as err:

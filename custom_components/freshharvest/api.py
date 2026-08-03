@@ -135,6 +135,10 @@ class AccountSnapshot:
     # have not reached it, so it is read once and applied to every order.
     free_delivery_threshold: float | None = None
     orders: list[DeliveryOrder] = field(default_factory=list)
+    # Populated by the coordinator from separate pages. Typed loosely because
+    # actions.py imports this module, so it cannot be imported back from here.
+    subscriptions: list = field(default_factory=list)
+    vacation_holds: list = field(default_factory=list)
 
     @property
     def next_order(self) -> DeliveryOrder | None:

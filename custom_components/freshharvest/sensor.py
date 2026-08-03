@@ -94,6 +94,38 @@ SENSORS: tuple[FreshHarvestSensorDescription, ...] = (
         },
     ),
     FreshHarvestSensorDescription(
+        key="subscriptions",
+        translation_key="subscriptions",
+        scope="account",
+        icon="mdi:autorenew",
+        native_unit_of_measurement="items",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda s: len(s.subscriptions),
+        attrs_fn=lambda s: {
+            "items": [
+                " ".join(
+                    p for p in (str(sub.quantity or ""), sub.name,
+                                f"({sub.frequency})" if sub.frequency else "")
+                    if p
+                )
+                for sub in s.subscriptions
+            ],
+            "partners": sorted({sub.partner for sub in s.subscriptions if sub.partner}),
+        },
+    ),
+    FreshHarvestSensorDescription(
+        key="vacation_holds",
+        translation_key="vacation_holds",
+        scope="account",
+        icon="mdi:airplane",
+        native_unit_of_measurement="holds",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda s: len(s.vacation_holds),
+        attrs_fn=lambda s: {
+            "ranges": [f"{h.start} to {h.end}" for h in s.vacation_holds]
+        },
+    ),
+    FreshHarvestSensorDescription(
         key="delivery_day",
         translation_key="delivery_day",
         scope="account",

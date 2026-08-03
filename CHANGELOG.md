@@ -18,6 +18,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   site, refreshing the matrix in README and opening an issue on drift.
 - `FreshHarvestClient.async_fetch`, restored as the shared authenticated-fetch
   primitive that both the snapshot read and every write action build on.
+- `todo.fresh_harvest_box`: the order as a to-do list, so Home Assistant's own
+  conversation agent can add and remove items with no bespoke voice code.
+  Adding resolves the name against the site's search index first.
+- `switch.fresh_harvest_skip_next_order` (a switch, not a button, so the state
+  is readable and reversible) and `button.fresh_harvest_donate_next_order`
+  (a button, because donating cannot be undone).
+- `sensor.fresh_harvest_subscriptions` and `sensor.fresh_harvest_vacation_holds`,
+  each listing the detail in attributes.
+- A `freshharvest_action` event fired after every write action, carrying
+  action/success/target/detail so automations can notify on the outcome.
+
+### Fixed
+
+- Subscription parsing matched `.account-item-multi-fields`, which is the
+  heading row, so an account with a live subscription reported zero. Cells are
+  now picked by semantic class. Regression covered in `tests/test_actions.py`.
+
+### Known gaps
+
+- Un-skip raises rather than guessing: the portal's restore control only
+  appears once an order is skipped, so its endpoint has never been observed.
+- Entities are deliberately NOT exposed to the conversation agent yet.
 
 ### Notes
 

@@ -57,11 +57,32 @@
       },
       "shop_window": {
         "name": "Shopping window"
+      },
+      "subscriptions": {
+        "name": "Subscriptions"
+      },
+      "vacation_holds": {
+        "name": "Vacation holds"
       }
     },
     "binary_sensor": {
       "order_open": {
         "name": "Order open"
+      }
+    },
+    "switch": {
+      "skip_open_order": {
+        "name": "Skip next order"
+      }
+    },
+    "button": {
+      "donate_open_order": {
+        "name": "Donate next order"
+      }
+    },
+    "todo": {
+      "box": {
+        "name": "Box"
       }
     }
   }

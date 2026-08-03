@@ -10,7 +10,13 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from .api import FreshHarvestClient
 from .coordinator import FreshHarvestCoordinator
 
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.TODO,
+]
 
 type FreshHarvestConfigEntry = ConfigEntry[FreshHarvestCoordinator]
 
