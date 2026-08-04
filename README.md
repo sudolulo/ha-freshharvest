@@ -1,5 +1,7 @@
 # ha-freshharvest
 
+[![Validate](https://git.arch.fyi/flan/ha-freshharvest/actions/workflows/validate.yml/badge.svg)](https://git.arch.fyi/flan/ha-freshharvest/actions)
+
 Unofficial Home Assistant integration for [Fresh Harvest](https://freshharvest.com/),
 the Georgia local-produce delivery subscription.
 
