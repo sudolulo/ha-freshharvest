@@ -8,9 +8,27 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+# hassfest and HACS run on GitHub ONLY, and are skipped on the Gitea mirror of this repo.
+# Neither can work there, for reasons no input or secret changes:
+#
+#   hassfest is a Docker-container action that bind-mounts $GITHUB_WORKSPACE. The Gitea runner
+#   executes the job inside a container against a SEPARATE docker-in-docker daemon, so that path
+#   is resolved on the daemon's filesystem rather than the job's; docker helpfully creates an
+#   empty directory and mounts that, and hassfest then correctly reports "No integrations found!"
+#   about a tree it was handed empty. It needs no token, so no credential fixes it.
+#
+#   HACS asks the github.com API about ${{ github.repository }}. On Gitea that is
+#   "flan/ha-freshharvest", which exists only on Gitea — hence the 401. The GitHub mirror is
+#   sudolulo/ha-freshharvest, and hacs/action has no input to redirect the lookup.
+#
+# Nothing is lost by skipping them here: github.com/sudolulo/ha-freshharvest is a live mirror and
+# runs both jobs green on every push. The condition is written as "not Gitea" rather than
+# "is GitHub" on purpose, so an unexpected server_url still RUNS the checks instead of quietly
+# dropping them.
 jobs:
   hassfest:
     name: hassfest
+    if: ${{ github.server_url != 'https://git.arch.fyi' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,6 +36,7 @@ jobs:
 
   hacs:
     name: HACS
+    if: ${{ github.server_url != 'https://git.arch.fyi' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
