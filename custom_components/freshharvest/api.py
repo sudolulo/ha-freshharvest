@@ -33,6 +33,14 @@ USER_AGENT = (
     "Chrome/126.0 Safari/537.36"
 )
 
+# Bound every portal request. The shared Home Assistant session otherwise
+# inherits aiohttp's five-minute default, long enough for one hung request to
+# drag a refresh — or, during setup, an entire config entry — past Home
+# Assistant's own timeouts and into a hard failure. Thirty seconds sits far
+# above the portal's normal response yet still fails fast when it is
+# unreachable, so a slow site becomes a retry rather than a broken entry.
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
+
 # Hidden anti-replay fields, minted per session on each GET of the login form.
 _HIDDEN_RE = re.compile(
     r"name='(?P<name>LoginSecurity|SubmitToken)'[^>]*value='(?P<value>[^']*)'"
@@ -315,11 +323,16 @@ class FreshHarvestClient:
         self._authenticated = False
 
     async def _get(self, path: str) -> str:
-        async with self._session.get(
-            BASE.join(URL(path)), headers={"User-Agent": USER_AGENT}
-        ) as resp:
-            resp.raise_for_status()
-            return await resp.text()
+        try:
+            async with self._session.get(
+                BASE.join(URL(path)),
+                headers={"User-Agent": USER_AGENT},
+                timeout=REQUEST_TIMEOUT,
+            ) as resp:
+                resp.raise_for_status()
+                return await resp.text()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise FreshHarvestError(f"request for {path} failed: {err}") from err
 
     async def async_login(self) -> None:
         """Run the two-step handshake: fetch tokens, then post credentials.
@@ -347,10 +360,11 @@ class FreshHarvestClient:
                 BASE.join(URL(LOGIN_SUBMIT)),
                 data=payload,
                 headers={"User-Agent": USER_AGENT},
+                timeout=REQUEST_TIMEOUT,
             ) as resp:
                 resp.raise_for_status()
                 body = await resp.text()
-        except aiohttp.ClientError as err:
+        except (aiohttp.ClientError, TimeoutError) as err:
             raise FreshHarvestError(f"login request failed: {err}") from err
 
         if not self._signed_in(body):

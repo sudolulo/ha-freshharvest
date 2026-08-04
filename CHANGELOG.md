@@ -5,6 +5,24 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-08-04
+
+### Fixed
+
+- The produce-box select listed the boxes on offer from inside
+  `async_added_to_hass`, one fetch per box popup. That ran during entity setup,
+  so on a slower connection those fetches exceeded Home Assistant's
+  `SLOW_SETUP_MAX_WAIT`, the platform was cancelled, and the whole config entry
+  landed in `setup_error` — every entity `unavailable` despite valid
+  credentials. The listing now runs once in the background: the entity comes up
+  immediately with the current box as its option and the rest fill in when the
+  listing returns. Regression covered in `tests/test_setup_hygiene.py`.
+- Every portal request now carries a 30-second timeout. The shared Home
+  Assistant session otherwise inherits aiohttp's five-minute default, long
+  enough for one hung request to drag a refresh — or a first setup — past Home
+  Assistant's own limits and fail it outright. A slow or unreachable site now
+  surfaces as a normal retry instead.
+
 ## [0.4.0] - 2026-08-03
 
 Control, not just reporting: the box can now be managed from Home Assistant.

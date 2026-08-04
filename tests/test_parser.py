@@ -26,6 +26,7 @@ def _load_api():
         stub = types.ModuleType("aiohttp")
         stub.ClientSession = object
         stub.ClientError = Exception
+        stub.ClientTimeout = lambda *args, **kwargs: None
         sys.modules["aiohttp"] = stub
     if "yarl" not in sys.modules:
         try:

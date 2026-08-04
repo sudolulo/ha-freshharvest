@@ -39,7 +39,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FreshHarvestConfigEntry
-from .api import FreshHarvestError
+from .api import REQUEST_TIMEOUT, FreshHarvestError
 from .coordinator import FreshHarvestCoordinator
 from .entity import FreshHarvestEntity
 
@@ -129,6 +129,7 @@ class FreshHarvestBox(FreshHarvestEntity, TodoListEntity):
                 "X-Algolia-Application-Id": app,
                 "Content-Type": "application/json",
             },
+            timeout=REQUEST_TIMEOUT,
         ) as resp:
             resp.raise_for_status()
             hits = (await resp.json()).get("hits") or []

@@ -20,6 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FreshHarvestConfigEntry
 from .api import FreshHarvestError
+from .const import DOMAIN
 from .coordinator import FreshHarvestCoordinator
 from .entity import FreshHarvestEntity
 
@@ -79,13 +80,26 @@ class FreshHarvestBoxSelect(FreshHarvestEntity, SelectEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        # Listing costs a fetch per box popup, so it happens once on setup
-        # rather than on every coordinator refresh.
+        # Listing the boxes on offer costs one fetch per box popup. Doing it
+        # here inline blocked entity setup: on a slower connection those fetches
+        # ran past Home Assistant's SLOW_SETUP_MAX_WAIT and the whole config
+        # entry was cancelled into "setup_error", leaving every entity
+        # unavailable despite valid credentials. It now runs once, in the
+        # background — the entity comes up immediately with the current box as
+        # its only option and the rest appear when the listing returns.
+        self.coordinator.config_entry.async_create_background_task(
+            self.hass, self._async_load_options(), f"{DOMAIN}_list_baskets"
+        )
+
+    async def _async_load_options(self) -> None:
+        """Fetch the switchable boxes once and publish them as options."""
         try:
             baskets = await self.coordinator.actions.async_list_baskets()
-            self._options = [b.name for b in baskets]
         except FreshHarvestError as err:
             _LOGGER.warning("could not list produce boxes: %s", err)
+            return
+        self._options = [b.name for b in baskets]
+        self.async_write_ha_state()
 
     async def async_select_option(self, option: str) -> None:
         """Switch the next delivery to this box."""
