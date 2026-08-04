@@ -20,6 +20,7 @@ def _load():
         stub = types.ModuleType("aiohttp")
         stub.ClientSession = object
         stub.ClientError = Exception
+        stub.ClientTimeout = lambda *args, **kwargs: None
         sys.modules["aiohttp"] = stub
     sys.path.insert(0, str(COMPONENT))
     pkg = types.ModuleType("fh_pkg")

@@ -25,11 +25,18 @@ import time
 from dataclasses import dataclass, field
 from datetime import date
 
+import aiohttp
 from bs4 import BeautifulSoup
 
 from yarl import URL
 
-from .api import BASE, USER_AGENT, FreshHarvestClient, FreshHarvestError
+from .api import (
+    BASE,
+    REQUEST_TIMEOUT,
+    USER_AGENT,
+    FreshHarvestClient,
+    FreshHarvestError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -319,13 +326,17 @@ class FreshHarvestActions(BasketMixin):
 
     async def _post(self, path: str, payload: dict[str, str]) -> str:
         session = self._client._session  # noqa: SLF001 — same package
-        async with session.post(
-            BASE.join(URL(path)),
-            data=payload,
-            headers={"User-Agent": USER_AGENT},
-        ) as resp:
-            resp.raise_for_status()
-            return await resp.text()
+        try:
+            async with session.post(
+                BASE.join(URL(path)),
+                data=payload,
+                headers={"User-Agent": USER_AGENT},
+                timeout=REQUEST_TIMEOUT,
+            ) as resp:
+                resp.raise_for_status()
+                return await resp.text()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise FreshHarvestError(f"post to {path} failed: {err}") from err
 
     # ------------------------------------------------------------------ skip
 
