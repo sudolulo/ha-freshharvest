@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.svg" alt="Fresh Harvest" width="480">
+</p>
+
 # ha-freshharvest
 
 [![Validate](https://git.arch.fyi/flan/ha-freshharvest/actions/workflows/validate.yml/badge.svg)](https://git.arch.fyi/flan/ha-freshharvest/actions)
@@ -103,7 +107,9 @@ Paste it under `views:` in the raw configuration editor.
 
 ## Requirements
 
-Home Assistant 2025.2 or newer. Developed and running against 2026.7.
+Home Assistant 2025.2 or newer. Developed and running against 2026.7. The
+bundled brand images (the logo in Settings → Devices & Services) need 2026.3
+or newer; older versions simply keep the generic placeholder.
 
 ## Troubleshooting
 
@@ -134,6 +140,8 @@ pytest tests/
 ## Disclaimer
 
 Unofficial and unaffiliated — not endorsed by or supported by Fresh Harvest.
+The Fresh Harvest name and logo belong to Fresh Harvest and are used here only
+to identify the service this integrates with.
 Please do not lower the six-hour poll interval: this is a small business's
 website, not an API.
 

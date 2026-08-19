@@ -5,6 +5,28 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-19
+
+The integration now wears the Fresh Harvest brand instead of the generic
+puzzle-piece placeholder.
+
+### Added
+
+- Bundled brand images in `custom_components/freshharvest/brand/`: the FH
+  icon (256/512), the wordmark logo, and a dark-theme wordmark variant.
+  Home Assistant 2026.3+ serves these locally, so Settings → Devices &
+  Services shows the real logo with no home-assistant/brands submission
+  (that repository no longer accepts custom integrations anyway).
+- The Fresh Harvest wordmark at the top of the README (`docs/logo.svg`).
+
+### Notes
+
+- Home Assistant older than 2026.3 ignores the `brand/` folder and keeps the
+  placeholder; nothing breaks.
+- The HACS dashboard still shows its own placeholder — HACS fetches icons
+  from its CDN and does not read local brand images yet
+  (hacs/integration#5171). The integration pages themselves are unaffected.
+
 ## [0.4.1] - 2026-08-04
 
 ### Fixed
