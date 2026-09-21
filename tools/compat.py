@@ -10,11 +10,10 @@ schedule and fails when the site moves.
 WHAT THIS CAN AND CANNOT SEE
 ----------------------------
 Only the *unauthenticated* surface is checked here: the login handshake and the
-Algolia catalogue. The authenticated contract — dashboard markup, cart add
-hashes, skip popups, subscribe forms — needs a real session, and the only way to
-give public CI one is to put a personal grocery account's password in repo
-secrets. That is not worth it for a drift check. Those assumptions belong in a
-fleet job on a host that already has credential access; see README.
+Algolia catalogue, so it runs anywhere. The authenticated contract — dashboard
+markup, cart add hashes, skip popups, subscribe forms — needs a real session.
+tools/compat_auth.py checks that half, from a workflow that runs only on the
+maintainer's forge, where the account credentials are; see README.
 
 Exit code is the number of FAILED checks, so CI fails loudly on drift.
 """

@@ -9,11 +9,11 @@ name: Upstream compatibility
 # live site daily, refreshing the matrix in README.md and opening an issue when
 # something breaks.
 #
-# SCOPE: unauthenticated surface only. The authenticated contract (dashboard
-# markup, cart hashes, skip popups, subscribe forms) needs a real session, and
-# the only way to give public CI one is to park a personal grocery account's
-# password in repo secrets. Not worth it for a drift check — that half belongs in
-# a fleet job on a host that already holds credentials.
+# SCOPE: unauthenticated surface only, so this runs anywhere, the GitHub mirror
+# included. The authenticated contract (dashboard markup, cart hashes, skip
+# popups, subscribe forms) needs a real session: compat-auth.yml checks that
+# half, and runs only on the maintainer's forge, where the account credentials
+# are repository secrets.
 
 on:
   schedule:

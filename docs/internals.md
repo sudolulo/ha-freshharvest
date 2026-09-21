@@ -67,7 +67,12 @@ Two invariants hold against the portal's own arithmetic, and tests assert both:
 
 freshharvest.com has no API and no stability contract — this integration reads
 HTML and posts to form endpoints, so a redesign can change what a value *means*
-without changing its shape. [tools/compat.py](tools/compat.py) records every
+without changing its shape. [tools/compat.py](../tools/compat.py) records every
 assumption and CI asserts them against the live site daily, refreshing this
 table and opening an issue on drift.
+
+That covers only what anyone can see. The markup behind the login, where every
+real break so far has been, is checked by
+[tools/compat_auth.py](../tools/compat_auth.py) from a daily workflow that runs
+only on the maintainer's forge; see the README.
 

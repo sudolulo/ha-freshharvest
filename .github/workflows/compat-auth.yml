@@ -1,0 +1,117 @@
+name: Signed-in compatibility
+
+# compat.yml checks what anyone can see on freshharvest.com. Everything that has
+# actually broken so far sat behind the login, and every one of those breaks was
+# SILENT: subscription rows moved and the integration reported 0 subscriptions,
+# hold dates stopped being ISO and it reported 0 holds. A sensor reading 0 looks
+# like an account with nothing in it, so nobody notices.
+#
+# tools/compat_auth.py signs in, read-only, and checks the markup the sensors and
+# controls are parsed from. It never posts to a write endpoint.
+#
+# WHERE IT RUNS: only on the maintainer's own forge, where the account
+# credentials are repository secrets. The GitHub mirror and forks skip it (the
+# job's `if:`); they have no credentials, and a daily red run would be noise.
+#
+# THE RUN LOG IS PUBLIC. The script prints one pass/fail label per assumption and
+# nothing read from the account. Keep it that way: no `set -x`, never echo an
+# env var, and hand secrets to steps through `env:` only, never inline in `run:`.
+#
+# Secrets: FRESHHARVEST_EMAIL and FRESHHARVEST_PASSWORD (the account), NTFY_URL
+# (the full ntfy topic URL) and NTFY_TOKEN (an access token for that topic).
+
+on:
+  schedule:
+    # 11:41 UTC is 07:41 EDT (06:41 EST): before the day's first Home Assistant
+    # refresh, so a break is known before anyone reads a sensor quietly showing 0.
+    - cron: "41 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compat-auth:
+    name: signed-in markup check
+    # Not GitHub, and this repository: skips the mirror and every fork.
+    if: ${{ github.server_url != 'https://github.com' && github.repository == 'flan/ha-freshharvest' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Exit 5: every assumption holds. 10: drift. Anything else: it could not run.
+      - name: Check the markup behind the login
+        id: check
+        shell: bash
+        env:
+          FH_EMAIL: ${{ secrets.FRESHHARVEST_EMAIL }}
+          FH_PASSWORD: ${{ secrets.FRESHHARVEST_PASSWORD }}
+        run: |
+          report="${RUNNER_TEMP:-/tmp}/compat-auth-report.txt"
+          rc=0
+          # Well inside the job's 10 minutes, so the notify step still gets to run.
+          timeout 7m python tools/compat_auth.py > "$report" 2>&1 || rc=$?
+          if [ "$rc" -eq 124 ]; then
+            printf '\ntimed out after 7 minutes\n' >> "$report"
+          fi
+          cat "$report"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          case "$rc" in
+            5)  exit 0 ;;
+            10) echo "::error::freshharvest.com markup has drifted; see the report above"
+                exit 1 ;;
+            *)  echo "::error::the check could not run (exit $rc)"
+                exit 1 ;;
+          esac
+
+      # Runs on drift, on a failed check, and on any earlier step failing.
+      - name: Push the report to ntfy
+        if: ${{ failure() }}
+        shell: bash
+        env:
+          NTFY_URL: ${{ secrets.NTFY_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          RC: ${{ steps.check.outputs.rc }}
+          # Gitea addresses a run's page by its per-repository run number.
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_number }}
+        run: |
+          if [ -z "$NTFY_URL" ] || [ -z "$NTFY_TOKEN" ]; then
+            echo "::error::the NTFY_URL and NTFY_TOKEN secrets must both be set"
+            exit 1
+          fi
+          report="${RUNNER_TEMP:-/tmp}/compat-auth-report.txt"
+          if [ ! -s "$report" ]; then
+            echo "No report: a step before the check failed." > "$report"
+          fi
+          if [ "$RC" = "10" ]; then
+            title="Fresh Harvest markup drift"
+            priority=default
+            tags=warning
+          else
+            title="Fresh Harvest signed-in check could not run"
+            priority=high
+            tags=rotating_light
+          fi
+          # -s without -S: a curl error message would name the ntfy host in this public log.
+          # The response body echoes the report, so it goes to /dev/null.
+          curl_rc=0
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 \
+            -H "Authorization: Bearer $NTFY_TOKEN" \
+            -H "Title: $title" \
+            -H "Priority: $priority" \
+            -H "Tags: $tags" \
+            -H "Click: $RUN_URL" \
+            --data-binary "@$report" \
+            "$NTFY_URL") || curl_rc=$?
+          if [ "$code" != "200" ]; then
+            echo "::error::ntfy push failed (HTTP ${code:-none}, curl exit $curl_rc)"
+            exit 1
+          fi
+          echo "report pushed to ntfy"

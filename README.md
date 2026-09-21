@@ -137,6 +137,23 @@ pip install beautifulsoup4 pytest yarl
 pytest tests/
 ```
 
+## Scheduled sign-in check
+
+Every break so far has been behind the login, and every one was silent: a
+sensor reading a plausible `0` rather than going unavailable. So once a day
+[tools/compat_auth.py](tools/compat_auth.py) signs in to a real account,
+read-only, and checks the markup the sensors and controls are parsed from:
+the dashboard, subscriptions, vacation holds, and the popups behind skip,
+donate and add. When something has moved, the run fails and the maintainer
+gets a push naming the broken assumption and what it would break.
+
+It runs only on the maintainer's own forge, where the account credentials
+are, and is skipped on the GitHub mirror and on forks. Its log is public, so
+it prints a pass or fail per assumption and nothing about the account. To run
+it yourself, set the four secrets listed at the top of
+[.github/workflows/compat-auth.yml](.github/workflows/compat-auth.yml) and
+change the job's `if:`.
+
 ## Disclaimer
 
 Unofficial and unaffiliated — not endorsed by or supported by Fresh Harvest.

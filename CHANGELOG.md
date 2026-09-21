@@ -5,6 +5,33 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-21
+
+No change to the integration itself: the check of the markup behind the login
+now lives in this repository.
+
+### Added
+
+- `tools/compat_auth.py` and a daily `compat-auth.yml` workflow. It signs in,
+  read-only, and checks the 17 assumptions the integration makes about the
+  signed-in pages. Exit 5 means all hold, 10 means drift, and anything else
+  means it could not run; a failed run pushes the report to ntfy. It runs only
+  on the maintainer's forge and is skipped on the GitHub mirror and on forks.
+  Credentials come from the `FH_EMAIL` and `FH_PASSWORD` environment
+  variables, and the output is pass/fail labels only, because the run log is
+  public.
+- Tests for its credential handling, exit codes and log hygiene.
+- A README section on the scheduled sign-in check.
+
+### Changed
+
+- `compat.yml`, `tools/compat.py` and `docs/internals.md` point at the new
+  workflow for the signed-in half instead of an external job.
+
+### Fixed
+
+- A broken relative link to `tools/compat.py` in `docs/internals.md`.
+
 ## [0.5.0] - 2026-08-19
 
 The integration now wears the Fresh Harvest brand instead of the generic
