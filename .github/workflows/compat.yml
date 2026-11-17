@@ -18,8 +18,9 @@ name: Upstream compatibility
 on:
   schedule:
     - cron: "23 7 * * *"      # daily, off the hour
-  workflow_dispatch:
   push:
+    # Live compatibility reporting runs only after owner approval on main.
+    branches: [main]
     paths:
       # The manifest of assumptions changed — re-check now, not tomorrow.
       - "tools/compat.py"

@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Gitea runs the GitHub-style workflows again**: `secret-scan.yml` moved from `.gitea/workflows/` to `.github/workflows/`. Gitea reads only the first workflow directory that exists, so the lone `.gitea/workflows/` file had stopped every `.github/workflows/` workflow on Gitea.
+
+### Changed
+
+- **Live compatibility checks start only from protected refs**: neither compatibility workflow accepts `workflow_dispatch` any more. `compat-auth.yml` runs on demand from an owner-only `compat-auth-*` tag, and `compat.yml` runs its path-triggered check only on pushes to `main`.
+- **Secret scan runs a digest-pinned Gitleaks image**: the scan uses the Gitleaks 8.30.1 container image by digest instead of downloading and unpacking the release archive in the job.
+
 ## [0.5.1] - 2026-09-21
 
 No change to the integration itself: the check of the markup behind the login

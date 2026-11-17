@@ -25,7 +25,9 @@ on:
     # 11:41 UTC is 07:41 EDT (06:41 EST): before the day's first Home Assistant
     # refresh, so a break is known before anyone reads a sensor quietly showing 0.
     - cron: "41 11 * * *"
-  workflow_dispatch:
+  # Owner-only on-demand check; this tag pattern must be flan-only protected.
+  push:
+    tags: ['compat-auth-*']
 
 permissions:
   contents: read
